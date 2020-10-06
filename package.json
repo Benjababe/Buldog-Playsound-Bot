@@ -1,0 +1,23 @@
+{
+  "name": "buldogplaysoundbot",
+  "version": "1.0.0",
+  "description": "replies playsound commands with playsounds",
+  "main": "node app.js",
+  "engines": {
+    "node": "12.18.4"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node app.js"
+  },
+  "author": "Benjababe",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "cheerio": "^1.0.0-rc.3",
+    "express": "^4.17.1",
+    "request": "^2.88.2",
+    "snoostorm": "^1.5.0",
+    "snoowrap": "^1.21.0"
+  }
+}
