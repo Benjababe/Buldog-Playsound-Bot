@@ -141,3 +141,40 @@ let handlePlaysoundTable = table => {
 
 setInterval(updatePlaysounds, 86400000);
 //updatePlaysounds();
+
+//-------------------------PINGING STUFF-------------------------//
+
+const http = require("http"),
+  express = require("express"),
+  app = express();
+
+app.get("/", (req, res) => {
+  let dateTime = getDateTime();
+  console.log(`${dateTime} Ping Received from ${req.ip}`);
+  res.sendStatus(200);
+});
+
+app.listen(3000);
+
+setInterval(() => {
+  http.get(`http://Buldog-Playsound-Bot.benjababe.repl.co`);
+}, 240000); 
+
+let getDateTime = () => {
+  let d = new Date();
+
+  //setting to GMT+8
+  d.setHours(d.getHours() + 8);
+  let year = d.getFullYear(),
+    month = dtFormat(d.getMonth() + 1),
+    date = dtFormat(d.getDate()),
+    hour = dtFormat(d.getHours()),
+    min = dtFormat(d.getMinutes()),
+    sec = dtFormat(d.getSeconds()),
+    ampm = (hour >= 12) ? "PM" : "AM";
+
+  hour %= 12;
+  return `[${date}/${month}/${year} - ${hour}:${min}:${sec} ${ampm}]`;
+}
+
+let dtFormat = (dt) => ("0" + dt).slice(-2);
