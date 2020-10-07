@@ -1,8 +1,6 @@
 const { CommentStream } = require("snoostorm");
 const Snoowrap = require("snoowrap");
 
-const cheerio = require("cheerio");
-const request = require("request");
 const fs = require("fs");
 
 const creds = require("./credentials.json");
@@ -10,32 +8,41 @@ const playsoundPath = "./playsounds.json";
 
 const client = new Snoowrap(creds);
 
-const playsoundRegex = /^!playsound [a-zA-Z0-9]+[ ]{0}$/gi;
+const buldogPSRegex = /^!playsound [a-zA-Z0-9]+[ ]{0}$/gi;
+const lagariPSRegex = /^!playsound la[cg]ari [a-zA-Z0-9]+[ ]{0}$/gi;
 
 let jobQueue = [],
   lastJob = -1,
-  commentDelay = 120000;
+  //comment delay for 1 minute
+  commentDelay = 60000;
 
-let parseComment = item => {
+let parseComment = (item) => {
   let soundData = fs.readFileSync(playsoundPath),
-    sounds = JSON.parse(soundData);
+    sounds = JSON.parse(soundData),
+    comment = item.body.trim(),
+    //sets value depending on which regex matches
+    streamer = (comment.match(buldogPSRegex)) ? "buldog" :
+               (comment.match(lagariPSRegex)) ? "lagari" : undefined;
 
-  //checks if comment matches playsound format.
-  if (item.body.trim().match(playsoundRegex)) {
-    let soundName = item.body.split(" ")[1].toLowerCase();
-    if (sounds[soundName] !== undefined) {
-      let reply = `[${soundName}](${sounds[soundName]["url"]})`;
-      //adds commenting job to the job queue
-      jobQueue.push([item, reply, soundName]);
-      console.log(`Added ${soundName} to job queue`);
-    } else {
-      console.log(`Playsound ${soundName} is not in the json file`);
-    }
+  if (streamer == undefined) return;
+  
+  let splitComment = comment.split(" "),
+    //grabs last part; the playsound name
+    soundName = splitComment[splitComment.length - 1].toLowerCase(),
+    soundInfo = sounds[streamer][soundName];
+
+  if (soundInfo !== undefined) {
+    let reply = `[${soundName}](${soundInfo["url"]})`;
+    //adds commenting job to queue
+    jobQueue.push([item, reply, soundName, streamer]);
+    console.log(`[${streamer}] Added ${soundName} to job queue`);
+  } else {
+    console.log(`[${streamer}] Playsound ${soundName} is not in ${streamer} playsound`);
   }
 };
 
 const comments = new CommentStream(client, {
-  subreddit: "admiralbulldog",
+  subreddit: "testingground4bots",
   limit: 25,
   pollTime: 5000,
   continueAfterRatelimitError: true
@@ -45,7 +52,7 @@ comments.on("item", parseComment);
 
 let checkCommented = job => {
   let commented = false;
-  return new Promise(res => {
+  return new Promise((res) => {
     job[0].expandReplies().then(c => {
       let replies = c.replies;
       for (let i = 0; i < replies.length; i++) {
@@ -67,20 +74,20 @@ let checkCommented = job => {
 let comment = () => {
   let replied = true,
     job = jobQueue.shift(),
-    repl = job[0].reply(job[1]);
+    snooReply = job[0].reply(job[1]);
 
   //error with commenting. probably comment limit of 10 minutes
-  repl
-    .catch(err => {
+  snooReply
+    .catch((err) => {
       console.log(err.message);
       jobQueue.unshift(job);
       replied = false;
-      //tries again 60 seconds later
-      lastJob = Date.now() - commentDelay + 60000;
+      //tries again 15 seconds later
+      lastJob = Date.now() - commentDelay + 15000;
     })
     .finally(() => {
       if (replied) {
-        console.log(`Commented and removed ${job[2]} from queue`);
+        console.log(`[${job[3]}] Successfully commented and removed ${job[2]} from queue`);
         lastJob = Date.now();
       }
     });
@@ -88,14 +95,14 @@ let comment = () => {
 
 let runJob = async () => {
   if (jobQueue.length > 0) {
-    //2 minutes passed since last job
+    //checks time between now and last comment
     if (Date.now() - lastJob > commentDelay) {
       let commented = await checkCommented(jobQueue[0]);
       //stop if checkCommented return false, indicating there isn't a prior comment and it has made a new comment
       //and if the job queue is empty
       if (!commented || jobQueue.length == 0) return;
       else {
-        console.log(`Already commented with ${jobQueue[0][2]}, removing...`);
+        console.log(`[${job[3]}] Already commented with ${jobQueue[0][2]}, removing...`);
         jobQueue.shift();
         runJob();
       }
@@ -104,43 +111,6 @@ let runJob = async () => {
 };
 
 setInterval(runJob, 5000);
-
-//-------------------------RETRIEVING PLAYSOUNDS-------------------------//
-
-let updatePlaysounds = () => {
-  const siteURL = "https://chatbot.admiralbulldog.live/playsounds";
-  console.log("Fetching playsounds...");
-  request(siteURL, (err, res, body) => {
-    if (!err && res.statusCode == 200) {
-      let $ = cheerio.load(body);
-      let tables = $("table");
-      Array.from(tables).forEach(handlePlaysoundTable);
-    } else {
-      console.error(err);
-    }
-  });
-};
-
-let handlePlaysoundTable = table => {
-  let soundData = fs.readFileSync(playsoundPath),
-    sounds = JSON.parse(soundData);
-  let $ = cheerio.load(table);
-  let rows = $("tbody > tr");
-  Array.from(rows).forEach(row => {
-    let cells = cheerio.load(row)("td");
-    let cellName = cells[0]["children"][0]["data"].trim().toLowerCase(),
-      cellSound = cheerio
-        .load(cells[5])("[data-volume]")
-        .attr("data-link")
-        .trim();
-
-    if (sounds[cellName] == undefined) sounds[cellName] = { url: cellSound };
-  });
-  fs.writeFileSync(playsoundPath, JSON.stringify(sounds));
-};
-
-setInterval(updatePlaysounds, 86400000);
-//updatePlaysounds();
 
 //-------------------------PINGING STUFF-------------------------//
 
