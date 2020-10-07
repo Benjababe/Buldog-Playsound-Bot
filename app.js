@@ -8,8 +8,8 @@ const playsoundPath = "./playsounds.json";
 
 const client = new Snoowrap(creds);
 
-const buldogPSRegex = /^!playsound [a-zA-Z0-9]+[ ]{0}$/gi;
-const lagariPSRegex = /^!playsound la[cg]ari [a-zA-Z0-9]+[ ]{0}$/gi;
+const buldogPSRegex = /^!playsound [a-zA-Z0-9]+[ ]{0}/gi;
+const lagariPSRegex = /^!playsound la[cg]ari [a-zA-Z0-9]+[ ]{0}/gi;
 
 let jobQueue = [],
   lastJob = -1,
@@ -25,8 +25,12 @@ let parseComment = (item) => {
                (comment.match(lagariPSRegex)) ? "lagari" : undefined;
 
   if (streamer == undefined) return;
-  
-  let splitComment = comment.split(" "),
+
+  //gets the regex approved format of whatever comment it was
+  comment = (streamer == "buldog") ? comment.match(buldogPSRegex) :
+                                     comment.match(lagariPSRegex);
+
+  let splitComment = comment.toString().split(" "),
     //grabs last part; the playsound name
     soundName = splitComment[splitComment.length - 1].toLowerCase(),
     soundInfo = sounds[streamer][soundName];
@@ -43,7 +47,7 @@ let parseComment = (item) => {
 
 const comments = new CommentStream(client, {
   subreddit: "admiralbulldog",
-  limit: 25,
+  limit: 50,
   pollTime: 5000,
   continueAfterRatelimitError: true
 });
@@ -102,8 +106,8 @@ let runJob = async () => {
       //and if the job queue is empty
       if (!commented || jobQueue.length == 0) return;
       else {
-        console.log(`[${job[3]}] Already commented with ${jobQueue[0][2]}, removing...`);
-        jobQueue.shift();
+        let doneJob = jobQueue.shift();
+        console.log(`[${doneJob[3]}] Already commented with ${doneJob[2]}, removing...`);
         runJob();
       }
     }
