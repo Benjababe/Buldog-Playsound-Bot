@@ -42,7 +42,7 @@ let parseComment = (item) => {
 };
 
 const comments = new CommentStream(client, {
-  subreddit: "testingground4bots",
+  subreddit: "admiralbulldog",
   limit: 25,
   pollTime: 5000,
   continueAfterRatelimitError: true
