@@ -9,3 +9,8 @@ or for lacari playsounds
 ```
 !playsound lagari/lacari black
 ```
+For ffmpeg/audio control to work, it needs to be given permission first. Just execute
+```
+chmod 777 ./tools/ffmpeg
+```
+and you should be set
