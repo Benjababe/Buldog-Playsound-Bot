@@ -7,7 +7,7 @@
     "node": "12.18.4"
   },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "node test.js",
     "start": "node app.js",
     "update_playsound": "node update_playsounds.js"
   },
@@ -15,8 +15,10 @@
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
+    "@ffprobe-installer/ffprobe": "^1.1.0",
     "cheerio": "^1.0.0-rc.3",
     "express": "^4.17.1",
+    "node-ffprobe": "^3.0.0",
     "request": "^2.88.2",
     "snoostorm": "^1.5.0",
     "snoowrap": "^1.21.0"
