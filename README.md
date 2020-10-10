@@ -13,4 +13,7 @@ For ffmpeg/audio control to work, it needs to be given permission first. Just ex
 ```
 chmod 777 ./tools/ffmpeg
 ```
-and you should be set
+and you should be set for playsound speed
+```
+!playsound lagari face 0.75
+```
