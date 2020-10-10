@@ -12,6 +12,13 @@ module.exports.CommentJob = class {
   }
 }
 
+module.exports.DeleteJob = class {
+  constructor(filepath, expiryTime) {
+    this.filepath = filepath;
+    this.expiryTime = expiryTime;
+  }
+}
+
 module.exports.listenComments = (client, parseComment) => {
   const subreddits = ["admiralbulldog", "dota2", "testingground4bots"];
   subreddits.forEach((subreddit) => {

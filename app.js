@@ -1,17 +1,17 @@
-const creds = require("./credentials.json");
-const playsoundPath = "./playsounds.json";
+const scriptDir = "./private";
+const etc = require(scriptDir + "/etc");
+const psHandler = require("./playsound_handler");
 
-const { CommentStream } = require("snoostorm");
+const creds = require(scriptDir + "/credentials.json");
+const playsoundPath = scriptDir + "/playsounds.json";
+
 const Snoowrap = require("snoowrap");
 const client = new Snoowrap(creds);
 
 const fs = require("fs");
 
-const coomments = require("./coomments");
-const psHandler = require("./playsound_handler");
-
-const buldogSpeedRegex = /!playsound [a-zA-Z0-9]+ [0-9.]{1,3}/gi
-const lagariSpeedRegex = /!playsound la[cg]ari [a-zA-Z0-9]+ [0-9.]{1,3}/gi;
+const buldogSpeedRegex = /!playsound [a-zA-Z0-9]+ [0-9.]{1,4}/gi
+const lagariSpeedRegex = /!playsound la[cg]ari [a-zA-Z0-9]+ [0-9.]{1,4}/gi;
 
 const buldogPSRegex = /!playsound [a-zA-Z0-9]+[ ]{0}/gi;
 const lagariPSRegex = /!playsound la[cg]ari [a-zA-Z0-9]+[ ]{0}/gi;
@@ -20,8 +20,9 @@ const hostURL = "http://Buldog-Playsound-Bot.benjababe.repl.co";
 
 let jobQueue = [],
   lastJob = -1,
-  //comment delay for 1 minute
-  commentDelay = 60000;
+  //comment delay for 10 seconds
+  commentDelay = 10000,
+  deleteQueue = [];
 
 let parseComment = (item) => {
   let soundData = fs.readFileSync(playsoundPath),
@@ -58,7 +59,7 @@ let parseComment = (item) => {
   if (soundInfo !== undefined) {
     let reply = `[${soundName}](${soundInfo["url"]})`;
     //adds commenting job to queue
-    let job = new coomments.CommentJob(item, reply, soundInfo["url"], soundName, speed, streamer);
+    let job = new etc.CommentJob(item, reply, soundInfo["url"], soundName, speed, streamer);
     jobQueue.push(job);
     console.log(`[${streamer}] Added ${soundName} to job queue`);
   } else {
@@ -66,7 +67,7 @@ let parseComment = (item) => {
   }
 };
 
-coomments.listenComments(client, parseComment);
+etc.listenComments(client, parseComment);
 
 let checkCommented = (job) => {
   let commented = false;
@@ -103,6 +104,8 @@ let comment = () => {
     psHandler.download(job.soundURL, job.speed, dateTime);
     job.speedURL = hostURL + `/playsounds/${newFilename}`;
     job.reply = job.reply.replace(job.soundURL, job.speedURL);
+    //adds file to delete queue for deletion after a week
+    pushDeleteQueue(newFilename, dateTime);
   }
 
   let item = job.item,
@@ -114,8 +117,8 @@ let comment = () => {
       console.log(err.message);
       jobQueue.unshift(job);
       replied = false;
-      //tries again 15 seconds later
-      lastJob = Date.now() - commentDelay + 15000;
+      //tries again 5 seconds later
+      lastJob = Date.now() - commentDelay + 5000;
     })
     .finally(() => {
       if (replied == true) {
@@ -142,7 +145,31 @@ let runJob = async () => {
   }
 };
 
-setInterval(runJob, 5000);
+let pushDeleteQueue = (filename, dateTime) => {
+  //1 week after generation
+  let expiry = dateTime + 604800,
+    filepath = `./public/playsounds/${filename}`;
+    deleteJob = new etc.DeleteJob(filepath, expiry);
+  deleteQueue.push(deleteJob);
+  //sorts queue in increasing order by deletion time
+  deleteQueue.sort((x, y) => {
+    return x.expiryTime - y.expiryTime;
+  });
+};
+
+let deleteJob = () => {
+  if (deleteQueue.length > 0) {
+    //while first item in queue has expired
+    if (deleteQueue[0].expiryTime < Date.now()) {
+      console.log(`Deleting ${deleteQueue[0].filepath}...`);
+      fs.unlink(deleteQueue[0].filepath, (err) => console.error);
+      deleteQueue.shift();
+    }
+  }
+}
+
+setInterval(runJob, 1000);
+setInterval(deleteJob, 5000);
 
 //-------------------------PINGING STUFF-------------------------//
 
