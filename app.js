@@ -41,6 +41,12 @@ let parseComment = (item) => {
     speed = parseFloat(splMatched[splMatched.length - 1]);
   }
 
+  //honestly idk the audio sample limit for mp3 or ogg
+  //only putting these by trial and error
+  //0.2 because any lower than that it becomes inelligible, 4 is ogg/mp3 format limit
+  if (speed < 0.2) speed = 0.2;
+  if (speed > 4) speed = 4;
+
   //sets value depending on which regex matches
   let streamer = (comment.match(lagariPSRegex)) ? "lagari" :
                (comment.match(buldogPSRegex)) ? "buldog" : undefined;
@@ -61,7 +67,8 @@ let parseComment = (item) => {
     //adds commenting job to queue
     let job = new etc.CommentJob(item, reply, soundInfo["url"], soundName, speed, streamer);
     jobQueue.push(job);
-    console.log(`[${streamer}] Added ${soundName} to job queue`);
+    console.log(`[${streamer}] Added ${soundName} to job queue` + 
+                               ((speed != 1) ? `(x${speed} speed)` : ""));
   } else {
     console.log(`[${streamer}] Playsound ${soundName} is not in ${streamer} playsound`);
   }
