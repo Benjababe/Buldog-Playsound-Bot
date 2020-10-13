@@ -22,7 +22,12 @@ let jobQueue = [],
   lastJob = -1,
   //comment delay for 10 seconds
   commentDelay = 10000,
-  deleteQueue = [];
+  deleteQueue = [],
+  //5 days in ms
+  deleteDelay = 432000000,
+  lastPSUpdate = -1,
+  //1 day in ms
+  updateDelay = 86400000;
 
 let parseComment = (item) => {
   let soundData = fs.readFileSync(playsoundPath),
@@ -154,7 +159,7 @@ let runJob = async () => {
 
 let pushDeleteQueue = (filename, dateTime) => {
   //1 week after generation
-  let expiry = dateTime + 604800,
+  let expiry = dateTime + deleteDelay,
     filepath = `./public/playsounds/${filename}`;
     deleteJob = new etc.DeleteJob(filepath, expiry);
   deleteQueue.push(deleteJob);
@@ -188,6 +193,18 @@ app.get("/", (req, res) => {
   let dateTime = getDateTime();
   console.log(`${dateTime} Ping Received from ${req.ip}`);
   res.sendStatus(200);
+});
+
+app.get("/updateplaysound", (req, res) => {
+  //if a day has passed since last playsound update
+  if ((lastPSUpdate + updateDelay) < Date.now()) {
+    psHandler.updatePlaysounds("buldog");
+    psHandler.updatePlaysounds("lagari");
+    lastPSUpdate = Date.now();
+    res.send("Updating playsounds...");
+  } else {
+    res.send("Hasn't been a full day since last playsound update");
+  }
 });
 
 app.use(express.static("public"));
