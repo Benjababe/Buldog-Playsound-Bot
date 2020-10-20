@@ -12,11 +12,14 @@ const fs = require("fs");
 
 const buldogSpeedRegex = /!playsound [a-zA-Z0-9]+ [0-9.]{1,4}/gi
 const lagariSpeedRegex = /!playsound la[cg]ari [a-zA-Z0-9]+ [0-9.]{1,4}/gi;
+const customSpeedRegex = /!playsound cs [a-zA-Z0-9]+ [0-9.]{1,4}/gi;
 
 const buldogPSRegex = /!playsound [a-zA-Z0-9]+[ ]{0}/gi;
 const lagariPSRegex = /!playsound la[cg]ari [a-zA-Z0-9]+[ ]{0}/gi;
+const customPSRegex = /!playsound cs [a-zA-Z0-9]+[ ]{0}/gi;
 
-const hostURL = "http://Buldog-Playsound-Bot.benjababe.repl.co";
+const hostURL = "https://Buldog-Playsound-Bot.benjababe.repl.co";
+const customURL = hostURL + "/playsounds/custom/";
 
 let jobQueue = [],
   lastJob = -1,
@@ -37,12 +40,17 @@ let parseComment = (item) => {
 
 
   //optimise this code maybe
+  //code below extracts the output speed of playsound from command
   if (comment.match(buldogSpeedRegex)) {
     let splMatched = comment.match(buldogSpeedRegex).toString().split(" ");
     speed = parseFloat(splMatched[splMatched.length - 1]);
   }
   if (comment.match(lagariSpeedRegex)) {
     let splMatched = comment.match(lagariSpeedRegex).toString().split(" ");
+    speed = parseFloat(splMatched[splMatched.length - 1]);
+  }
+  if (comment.match(customSpeedRegex)) {
+    let splMatched = comment.match(customSpeedRegex).toString().split(" ");
     speed = parseFloat(splMatched[splMatched.length - 1]);
   }
 
@@ -53,14 +61,16 @@ let parseComment = (item) => {
   if (speed > 4) speed = 4;
 
   //sets value depending on which regex matches
-  let streamer = (comment.match(lagariPSRegex)) ? "lagari" :
+  let streamer = (comment.match(lagariPSRegex)) ? "lagari" : 
+               (comment.match(customPSRegex)) ? "custom" : 
                (comment.match(buldogPSRegex)) ? "buldog" : undefined;
 
+  //returns if command doesn't match any streamers
   if (streamer == undefined) return;
 
   //gets the regex approved format of whatever comment it was
-  let matched = (streamer == "buldog") ? comment.match(buldogPSRegex) :
-                                         comment.match(lagariPSRegex);
+  let matched = (streamer == "buldog") ? comment.match(buldogPSRegex) : 
+                (streamer == "custom") ? comment.match(customPSRegex) :               (streamer == "lagari") ? comment.match(lagariPSRegex) : undefined;
 
   let splitMatched = matched.toString().split(" "),
     //grabs last part; the playsound name
@@ -68,7 +78,12 @@ let parseComment = (item) => {
     soundInfo = sounds[streamer][soundName];
 
   if (soundInfo !== undefined) {
+    //make custom json compatible with regular ones
+    if (streamer == "custom")
+      soundInfo["url"] = customURL + soundInfo["filename"];
+
     let reply = `[${soundName}](${soundInfo["url"]})`;
+
     //adds commenting job to queue
     let job = new etc.CommentJob(item, reply, soundInfo["url"], soundName, speed, streamer);
     jobQueue.push(job);
@@ -185,7 +200,7 @@ setInterval(deleteJob, 5000);
 
 //-------------------------PINGING STUFF-------------------------//
 
-const http = require("http"),
+const https = require("https"),
   express = require("express"),
   app = express();
 
@@ -212,7 +227,7 @@ app.use(express.static("public"));
 app.listen(3000);
 
 setInterval(() => {
-  http.get(hostURL);
+  https.get(hostURL);
 }, 240000); 
 
 let getDateTime = () => {
