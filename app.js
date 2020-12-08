@@ -10,21 +10,25 @@ const client = new Snoowrap(creds);
 
 const fs = require("fs");
 
-const buldogSpeedRegex = /!playsound [a-zA-Z0-9]+ [0-9.]{1,4}/gi
-const lagariSpeedRegex = /!playsound la[cg]ari [a-zA-Z0-9]+ [0-9.]{1,4}/gi;
-const customSpeedRegex = /!playsound cs [a-zA-Z0-9]+ [0-9.]{1,4}/gi;
+const buldogSpeedRegex = /!playsound [a-zA-Z0-9_-]+ [0-9.]{1,4}/gi
+const lagariSpeedRegex = /!playsound la[cg]ari [a-zA-Z0-9_-]+ [0-9.]{1,4}/gi;
+const customSpeedRegex = /!playsound (cs|custom) [a-zA-Z0-9_-]+ [0-9.]{1,4}/gi;
 
-const buldogPSRegex = /!playsound [a-zA-Z0-9]+[ ]{0}/gi;
-const lagariPSRegex = /!playsound la[cg]ari [a-zA-Z0-9]+[ ]{0}/gi;
-const customPSRegex = /!playsound cs [a-zA-Z0-9]+[ ]{0}/gi;
+const buldogPSRegex = /!playsound [a-zA-Z0-9_-]+[ ]{0}/gi;
+const lagariPSRegex = /!playsound la[cg]ari [a-zA-Z0-9_-]+[ ]{0}/gi;
+const customPSRegex = /!playsound (cs|custom) [a-zA-Z0-9_-]+[ ]{0}/gi;
+
+//global variable declaration
 
 const hostURL = "https://Buldog-Playsound-Bot.benjababe.repl.co";
+const generatedURL = hostURL + "/playsounds/generated/";
 const customURL = hostURL + "/playsounds/custom/";
 
 let jobQueue = [],
   lastJob = -1,
   //comment delay for 10 seconds
   commentDelay = 10000,
+  //queue of generated playsounds to delete
   deleteQueue = [],
   //5 days in ms
   deleteDelay = 432000000,
@@ -32,12 +36,12 @@ let jobQueue = [],
   //1 day in ms
   updateDelay = 86400000;
 
+//checks if comment includes playsound command
 let parseComment = (item) => {
   let soundData = fs.readFileSync(playsoundPath),
     sounds = JSON.parse(soundData),
     comment = item.body.trim(),
     speed = 1;
-
 
   //optimise this code maybe
   //code below extracts the output speed of playsound from command
@@ -94,8 +98,6 @@ let parseComment = (item) => {
   }
 };
 
-etc.listenComments(client, parseComment);
-
 let checkCommented = (job) => {
   let commented = false;
   return new Promise((res) => {
@@ -123,13 +125,13 @@ let comment = () => {
   let replied = true,
     job = jobQueue.shift();
 
-  //sound is within (0,inf), \{1}
+  //sound is in range (0,inf), \{1}
   //intercepts reply process, changing regular url with new speed changed url.
   if (((job.speed > 0) && (job.speed < 1)) || (job.speed > 1)) {
     let dateTime = Date.now(),
       newFilename = psHandler.newFilename(job.soundURL, dateTime);
     psHandler.download(job.soundURL, job.speed, dateTime);
-    job.speedURL = hostURL + `/playsounds/${newFilename}`;
+    job.speedURL = generatedURL + newFilename;
     job.reply = job.reply.replace(job.soundURL, job.speedURL);
     //adds file to delete queue for deletion after a week
     pushDeleteQueue(newFilename, dateTime);
@@ -141,7 +143,7 @@ let comment = () => {
   //error with commenting. probably comment limit of 10 minutes
   snooReply
     .catch((err) => {
-      console.log(err.message);
+      console.error(err.message);
       jobQueue.unshift(job);
       replied = false;
       //tries again 5 seconds later
@@ -173,9 +175,9 @@ let runJob = async () => {
 };
 
 let pushDeleteQueue = (filename, dateTime) => {
-  //1 week after generation
+  //5 days after generation
   let expiry = dateTime + deleteDelay,
-    filepath = `./public/playsounds/${filename}`;
+    filepath = `./public/playsounds/generated/${filename}`;
     deleteJob = new etc.DeleteJob(filepath, expiry);
   deleteQueue.push(deleteJob);
   //sorts queue in increasing order by deletion time
@@ -195,17 +197,21 @@ let deleteJob = () => {
   }
 }
 
+//------------------------INITIAL SETUP-------------------------//
+
+etc.listenComments(client, parseComment);
 setInterval(runJob, 1000);
 setInterval(deleteJob, 5000);
 
-//-------------------------PINGING STUFF-------------------------//
+
+//-------------------------REPLIT STUFF-------------------------//
 
 const https = require("https"),
   express = require("express"),
   app = express();
 
 app.get("/", (req, res) => {
-  let dateTime = getDateTime();
+  let dateTime = etc.getDateTime();
   console.log(`${dateTime} Ping Received from ${req.ip}`);
   res.sendStatus(200);
 });
@@ -213,6 +219,7 @@ app.get("/", (req, res) => {
 app.get("/updateplaysound", (req, res) => {
   //if a day has passed since last playsound update
   if ((lastPSUpdate + updateDelay) < Date.now()) {
+    psHandler.updateCustom();
     psHandler.updatePlaysounds("buldog");
     psHandler.updatePlaysounds("lagari");
     lastPSUpdate = Date.now();
@@ -229,24 +236,3 @@ app.listen(3000);
 setInterval(() => {
   https.get(hostURL);
 }, 240000); 
-
-let getDateTime = () => {
-  let d = new Date();
-
-  //setting to GMT+8
-  d.setHours(d.getHours() + 8);
-  let year = d.getFullYear(),
-    month = dtFormat(d.getMonth() + 1),
-    date = dtFormat(d.getDate()),
-    hour = dtFormat(d.getHours()),
-    min = dtFormat(d.getMinutes()),
-    sec = dtFormat(d.getSeconds()),
-    ampm = (hour >= 12) ? "PM" : "AM";
-
-  //changing 24 hour to 12 hour format
-  hour = dtFormat(hour % 12);
-  //eg. [25/10/2020 - 11:18:54 PM]
-  return `[${date}/${month}/${year} - ${hour}:${min}:${sec} ${ampm}]`;
-}
-
-let dtFormat = (dt) => ("0" + dt).slice(-2);
