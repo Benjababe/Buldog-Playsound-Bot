@@ -2,4 +2,4 @@ node_modules
 credentials.json
 .replit
 .env
-public/playsounds/generated
+public/playsounds/generated/*.ogg

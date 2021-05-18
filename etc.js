@@ -1,7 +1,7 @@
-const { CommentStream } = require("snoostorm");
+const { CommentStream, SubmissionStream } = require("snoostorm");
 
 module.exports.CommentJob = class {
-  constructor(item, reply, soundURL, soundName, speed, streamer) {
+  constructor(item, reply, soundURL, soundName, speed, streamer, sub) {
     this.item = item;
     this.reply = reply;
     this.soundURL = soundURL;
@@ -9,6 +9,7 @@ module.exports.CommentJob = class {
     this.soundName = soundName;
     this.speed = speed;
     this.streamer = streamer;
+    this.sub = sub;
   }
 }
 
@@ -19,8 +20,14 @@ module.exports.DeleteJob = class {
   }
 }
 
+module.exports.log = (header, text, bracket = true) => {
+  header = (header.length == 0) ? "" : (bracket) ? `[${header}] ` : `${header} `;
+  console.log(`${header}${text}`);
+}
+
 module.exports.listenComments = (client, parseComment) => {
   const subreddits = ["admiralbulldog", "dota2", "testingground4bots"];
+
   subreddits.forEach((subreddit) => {
     let cStream = new CommentStream(client, {
       subreddit: subreddit,
@@ -29,6 +36,15 @@ module.exports.listenComments = (client, parseComment) => {
       continueAfterRatelimitError: true
     });
     cStream.on("item", parseComment);
+    /*
+    let sStream = new SubmissionStream(client, {
+      subreddit: "admiralbulldog",
+      limit: 50,
+      pollTime: 5000,
+      continueAfterRatelimitError: true
+    });
+    sStream.on("item", (i) => parseComment(i, true));
+    */
   });
 
   module.exports.getDateTime = () => {
@@ -44,9 +60,9 @@ module.exports.listenComments = (client, parseComment) => {
       sec = dtFormat(d.getSeconds()),
       ampm = (hour >= 12) ? "PM" : "AM";
 
-    //changing 24 hour to 12 hour format
+    // changing 24 hour to 12 hour format
     hour = dtFormat(hour % 12);
-    //eg. [25/10/2020 - 11:18:54 PM]
+    // eg. [25/10/2020 - 11:18:54 PM]
     return `[${date}/${month}/${year} - ${hour}:${min}:${sec} ${ampm}]`;
   }
 
