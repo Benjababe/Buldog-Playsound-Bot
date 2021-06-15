@@ -1,8 +1,10 @@
 const etc = require("./etc"),
       web = require("./web"),
       cmHandler = require("./comment_handler"),
+      psHandler = require("./playsound_handler"),
       creds = require("./private/credentials.json"),
       fs = require("fs");
+
 
 const Snoowrap = require("snoowrap"),
       client = new Snoowrap(creds);
@@ -70,6 +72,10 @@ let initDeleteJobs = () => {
 
 
 //------------------------INITIAL SETUP-------------------------//
+
+// cleans up playsound json of unused custom playsounds
+// TODO maybe do one for buldog and lagari
+psHandler.cleanCustomPlaysounds();
 
 // starts listening to reddit comments in specified subreddits
 etc.listenComments(client, parseComment);

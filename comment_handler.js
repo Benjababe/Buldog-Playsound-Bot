@@ -18,13 +18,6 @@ const sources = {
 
 const tags = { "daym": "cmonBruh" };
 
-class CommentJob {
-    constructor(item) {
-        this.item = item;
-        this.reply = "";
-    }
-}
-
 module.exports.parse = async (item, isPost = false) => {
     let psJobs = [],
         comment = ((isPost) ? item.title.trim() : item.body.trim()).split(" "),
@@ -50,7 +43,8 @@ module.exports.parse = async (item, isPost = false) => {
         comment.shift();
     comment.shift();
 
-    while (comment.length > 0 || (streamer != undefined && playsound != undefined && stage == 4)) {
+    while (comment.length > 0 || 
+           (streamer != undefined && playsound != undefined && stage == 4)) {
         if (stage == 1) {
             //streamer defaults to buldog
             streamer = Object.keys(sources).includes(comment[0]) ? sources[comment.shift()] : "buldog";
@@ -123,7 +117,6 @@ let generateCommentJob = async (item, sounds, ps) => {
             files.push(psHandler.newFilename(filename, dateTime, genPath = true));
         }
     }
-
     combinePlaysounds(item, files);
 }
 
@@ -136,7 +129,7 @@ let combinePlaysounds = async (item, files) => {
 
     // generates reply and replies to playsound command
     let reply = filename.split("_ss_")[0].split("_").join(" "),
-        tags = getTags(files);
+        tags = getTags(reply.split(" "));
     replyComment(item, generatedURL + filename, comment = reply, tags = tags);
 }
 
@@ -155,11 +148,11 @@ let getCombinedFilename = (files) => {
 }
 
 // returns tags for the reply
-let getTags = (files) => {
+let getTags = (sounds) => {
     let commentTags = [];
 
     Array.from(Object.keys(tags)).forEach((name) => {
-        if (files.includes(name)) {
+        if (sounds.includes(name)) {
             commentTags.push(tags[name]);
         }
     });
@@ -169,15 +162,15 @@ let getTags = (files) => {
 
 
 let replyComment = (item, url, comment = "", tags = "") => {
-    if (comment === "")
+    if (comment == "")
         comment = "Your order";
 
-    if (tags === "")
+    if (tags != "")
         tags = `[${tags}] `;
 
-    item.reply(`${tags}[${comment}](${url})`);
+    item.reply(`[${tags}${comment}](${url})`);
 
-    etc.log("Comment", `Replied with "[${comment}](${url})"`);
+    etc.log("Comment", `Replied with "[${tags}${comment}](${url})"`);
     etc.actionlog("Comment", `Commented playsound(s) ${comment}`);
 }
 

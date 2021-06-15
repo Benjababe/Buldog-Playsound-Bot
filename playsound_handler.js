@@ -39,7 +39,8 @@ module.exports.combine = (files, filename) => {
         if (files.length == 0)
             return;
 
-        let outPath = generatedPath + filename
+        let outPath = generatedPath + filename;
+
         exec(`${ffmpegPath} -i "concat:${files.join("|")}" ${outPath}`, (err, stderr) => {
             if (err) {
                 console.error(err);
@@ -57,11 +58,13 @@ module.exports.combine = (files, filename) => {
 
 let setSpeed = (track, speed, dateTime) => {
     return new Promise((res) => {
+
         // boldly assume every playsound has playback rate of 48KHz.
         // i would use ffprobe but it's troublesome
         let freq = 48000 * speed;
         let newTrack = newFileName(track, dateTime);
 
+        // be sure to use libopus as codec
         exec(`${ffmpegPath} -i ${generatedPath + track} -c:a libopus -filter:a 'asetrate=${freq}' -y ${generatedPath + newTrack}`, (err, stderr) => {
             if (err)  {
                 console.log(err);
@@ -94,12 +97,43 @@ const playsoundPath = "./private/playsounds.json",
       hostURL = "https://Buldog-Playsound-Bot.benjababe.repl.co",
       customURL = hostURL + "/playsounds/custom/";
 
-//TODO MAKE A FUNCTION TO CLEAN UP UNUSED PLAYSOUNDS IN JSON FILE
+const buldogURL = "https://chatbot.admiralbulldog.live/playsounds",
+      lagariURL = "https://lacari.live/playsounds";
 
+
+// removes any unused custom playsounds
+module.exports.cleanCustomPlaysounds = () => {
+    let soundData = fs.readFileSync(playsoundPath),
+        sounds = JSON.parse(soundData);
+
+    fs.readdir(customPSPath, (err, files) => {
+        if (err)
+            console.error(err);
+        else {
+            let changes = false,
+                keys =  Array.from(Object.keys(sounds["custom"]));
+
+            keys.forEach((key) => {
+                // if playsound exists in json but the file doesn't
+                // remove playsound from json
+                if (!files.includes(key + ".ogg")) {
+                    changes = true;
+                    delete sounds["custom"][key];
+                }
+            });
+
+            // only rewrite the json file if changes were made
+            if (changes)
+                fs.writeFileSync(playsoundPath, JSON.stringify(sounds));
+        }
+    });
+}
+
+// update playsounds for buldog/lagari/self
 module.exports.updatePlaysounds = async (streamer = "buldog") => {
     const siteURL = 
-    (streamer == "buldog") ? "https://chatbot.admiralbulldog.live/playsounds":
-    (streamer == "lagari") ? "https://lacari.live/playsounds" : "";
+    (streamer == "buldog") ? buldogURL :
+    (streamer == "lagari") ? lagariURL : "";
 
     request(siteURL, (err, res, body) => {
         if (!err && res.statusCode == 200) {
@@ -111,12 +145,12 @@ module.exports.updatePlaysounds = async (streamer = "buldog") => {
             console.log(`${streamer} playsounds updated`);
         } 
         
-        else {
+        else 
             console.error(err);
-        }
     });
 };
 
+// parses playsound table from the sites
 let handlePlaysoundTable = (table, streamer = "buldog") => {
     let soundData = fs.readFileSync(playsoundPath),
         sounds = JSON.parse(soundData);
@@ -145,29 +179,30 @@ let handlePlaysoundTable = (table, streamer = "buldog") => {
 
 module.exports.updateCustom = () => {
     fs.readdir(customPSPath, (err, files) => {
-    if (err)
-        console.error(err);
-    else {
-        let soundData = fs.readFileSync(playsoundPath),
-            sounds = JSON.parse(soundData);
+        if (err)
+            console.error(err);
+        else {
+            let soundData = fs.readFileSync(playsoundPath),
+                sounds = JSON.parse(soundData);
 
-        files.forEach((filename) => {
-            let psName = filename.split(".")[0];
-            if (sounds["custom"][psName] == undefined) {
-                sounds["custom"][psName] = { "filename": filename };
-                psMsg = `${etc.getDateTime()} (Custom) Added playsound ${psName} into json file\n`;
-                fs.appendFileSync(changeLogPath, psMsg);
+            files.forEach((filename) => {
+                let psName = filename.split(".")[0];
+                if (sounds["custom"][psName] == undefined) {
+                    sounds["custom"][psName] = { "filename": filename };
+                    psMsg = `${etc.getDateTime()} (Custom) Added playsound ${psName} into json file\n`;
+                    fs.appendFileSync(changeLogPath, psMsg);
 
-                appendWebPage(filename);
-            }
-        });
+                    appendWebPage(filename);
+                }
+            });
 
-        fs.writeFileSync(playsoundPath, JSON.stringify(sounds));
-        console.log("Custom playsounds updated");
-    }
+            fs.writeFileSync(playsoundPath, JSON.stringify(sounds));
+            console.log("Custom playsounds updated");
+        }
     });
 };
 
+// adds entry to custom webpage
 let appendWebPage = (filename) => {
     let elem = `<a id = "${filename}" href="${customURL}${filename}">${filename.split(".")[0]}</a><br>\n`;
 
