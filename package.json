@@ -17,6 +17,7 @@
   "dependencies": {
     "cheerio": "^1.0.0-rc.10",
     "express": "^4.17.1",
+    "got": "^11.8.2",
     "multer": "^1.4.2",
     "request": "^2.88.2",
     "snoostorm": "^1.5.0",

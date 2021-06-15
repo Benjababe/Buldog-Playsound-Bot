@@ -3,3 +3,6 @@ credentials.json
 .replit
 .env
 public/playsounds/generated/*.ogg
+public/playsounds/generated/*.mp3
+public/playsounds/uploads/*.ogg
+public/playsounds/uploads/*.mp3

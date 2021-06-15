@@ -21,5 +21,10 @@ and you should be set for playsound speed
 ```
 !playsound lagari face 0.75
 ```
+You can even combine them all
+```
+!playsound lagari face 0.75 allo 1.2 cs diedtosniper
+```
+will join all 3 playsounds at the set speed.
 
-There are 2 paths so far, /custom and /updateplaysound. In this case where I'm using replit as host: https://Buldog-Playsound-Bot.benjababe.repl.co/custom
+There are 3 paths so far, /custom, /updateplaysound and /upload. In this case where I'm using replit as host: https://Buldog-Playsound-Bot.benjababe.repl.co/custom

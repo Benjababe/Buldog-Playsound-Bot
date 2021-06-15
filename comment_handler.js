@@ -16,7 +16,7 @@ const sources = {
     "custom": "custom"
 }
 
-const nsfw = ["daym"];
+const tags = { "daym": "cmonBruh" };
 
 class CommentJob {
     constructor(item) {
@@ -113,40 +113,33 @@ let generateCommentJob = async (item, sounds, ps) => {
             let url = (tempPS[0] != "custom") ? sounds[tempPS[0]][tempPS[1]]["url"]:
                       customURL + sounds[tempPS[0]][tempPS[1]]["filename"],
                 filename = url.split("/");
+
             filename = filename[filename.length - 1];
-            console.log("downloading");
+
+            // waits for file to finish downloading
             await psHandler.download(url, tempPS[2], dateTime);
-            console.log("download completed");
+
+            // gets the downloaded filename and keeps it for later
             files.push(psHandler.newFilename(filename, dateTime, genPath = true));
         }
     }
+
     combinePlaysounds(item, files);
 }
 
 
-let combinePlaysounds = (item, files) => {
-    let start = Date.now(),
-        allExists = false;
+let combinePlaysounds = async (item, files) => {
 
-    let checkFiles = setInterval(async () => {
-        if (!allExists) {
-            let fileCount = 0;
+    // combined filename of playsounds
+    let filename = getCombinedFilename(files);
+    await psHandler.combine(files, filename);
 
-            files.forEach((file) => {
-                fileCount += fs.existsSync(file);
-            });
-
-            if (fileCount == files.length) {
-                allExists = true;
-
-                // combined filename of playsounds
-                let filename = getCombinedFilename(files);
-                await psHandler.combine(files, filename);
-                replyComment(item, generatedURL + filename);
-            }
-        }
-    }, 1000);
+    // generates reply and replies to playsound command
+    let reply = filename.split("_ss_")[0].split("_").join(" "),
+        tags = getTags(files);
+    replyComment(item, generatedURL + filename, comment = reply, tags = tags);
 }
+
 
 // returns combined filename of joint playsound
 let getCombinedFilename = (files) => {
@@ -161,10 +154,31 @@ let getCombinedFilename = (files) => {
     return combinedFile.join("_") + "_ss_" + Date.now() + ".ogg";
 }
 
+// returns tags for the reply
+let getTags = (files) => {
+    let commentTags = [];
 
-let replyComment = (item, url, comment = "Your order") => {
-    item.reply(`[${comment}](${url})`);
+    Array.from(Object.keys(tags)).forEach((name) => {
+        if (files.includes(name)) {
+            commentTags.push(tags[name]);
+        }
+    });
+
+    return commentTags.join(" ");
+}
+
+
+let replyComment = (item, url, comment = "", tags = "") => {
+    if (comment === "")
+        comment = "Your order";
+
+    if (tags === "")
+        tags = `[${tags}] `;
+
+    item.reply(`${tags}[${comment}](${url})`);
+
     etc.log("Comment", `Replied with "[${comment}](${url})"`);
+    etc.actionlog("Comment", `Commented playsound(s) ${comment}`);
 }
 
 let checkCommented = (item) => {
