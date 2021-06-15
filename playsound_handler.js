@@ -189,7 +189,7 @@ module.exports.updateCustom = () => {
                 let psName = filename.split(".")[0];
                 if (sounds["custom"][psName] == undefined) {
                     sounds["custom"][psName] = { "filename": filename };
-                    psMsg = `${etc.getDateTime()} (Custom) Added playsound ${psName} into json file\n`;
+                    psMsg = `${etc.getDateTime()} (custom) Added playsound ${psName} into json file\n`;
                     fs.appendFileSync(changeLogPath, psMsg);
 
                     appendWebPage(filename);
