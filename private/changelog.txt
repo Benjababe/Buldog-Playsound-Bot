@@ -146,3 +146,15 @@
 [18/05/2021 - 10:30:25 PM] (lagari) Added playsound pepege into json file
 [18/05/2021 - 10:30:25 PM] (lagari) Added playsound scrub into json file
 [18/05/2021 - 10:30:25 PM] (lagari) Added playsound vent into json file
+[19/05/2021 - 02:30:41 AM] (Custom) Added playsound rootonce into json file
+[21/05/2021 - 09:48:58 PM] (Custom) Added playsound tutato into json file
+[21/05/2021 - 09:48:58 PM] (Custom) Added playsound uoh into json file
+[25/05/2021 - 09:27:02 PM] (buldog) Added playsound haachama2 into json file
+[30/05/2021 - 05:23:18 PM] (buldog) Added playsound ahoy into json file
+[30/05/2021 - 08:53:17 PM] (buldog) Added playsound getalife into json file
+[09/06/2021 - 11:48:34 AM] (lagari) Added playsound gooddesign into json file
+[09/06/2021 - 11:48:34 AM] (lagari) Added playsound notalpha into json file
+[09/06/2021 - 11:48:34 AM] (lagari) Added playsound snapoutofit into json file
+[09/06/2021 - 03:18:40 PM] (lagari) Added playsound coom into json file
+[14/06/2021 - 09:05:01 AM] (buldog) Added playsound trolling into json file
+[14/06/2021 - 09:05:01 AM] (buldog) Added playsound icheated into json file

@@ -1,6 +1,6 @@
 const etc = require("./etc"),
       web = require("./web"),
-      cmParser = require("./comment_parser"),
+      cmHandler = require("./comment_handler"),
       psHandler = require("./playsound_handler"),
       creds = require("./private/credentials.json"),
       fs = require("fs");
@@ -9,7 +9,6 @@ const Snoowrap = require("snoowrap"),
       client = new Snoowrap(creds);
 
 const playsoundJSONPath = "./private/playsounds.json";
-
 
 const buldogSpeedRegex = /!playsound [a-zA-Z0-9_-]+ [0-9.]{1,4}/gi
 const lagariSpeedRegex = /!playsound la[cg]ari [a-zA-Z0-9_-]+ [0-9.]{1,4}/gi;
@@ -26,7 +25,7 @@ const generatedURL = hostURL + "/playsounds/generated/";
 const customURL = hostURL + "/playsounds/custom/";
 const actionLogPath = "./private/actionlog.txt";
 
-const nsfw = ["daym"]
+const tag = {"daym": "cmonBruh"};
 
 let jobQueue = [],
     lastJob = -1,
@@ -40,6 +39,9 @@ let jobQueue = [],
 
 // checks if comment includes playsound command
 let parseComment = (item, sub = false) => {
+    cmHandler.parse(item);
+    
+    /*
     let soundData = fs.readFileSync(playsoundJSONPath),
     sounds = JSON.parse(soundData),
     speed = 1,
@@ -89,7 +91,8 @@ let parseComment = (item, sub = false) => {
             soundInfo["url"] = customURL + soundInfo["filename"];
 
         // if playsound contains possible bannable words
-        let reply = `[${(nsfw.includes(soundName) ? "[Trigger Warning] " : "")}${soundName}](${soundInfo["url"]}) ${(streamer == "custom") ? `\n***\n^(List of my own custom playsounds can be found) ^[here](${hostURL}/custom)` : ""}`;
+        let head = Object.keys(tag).includes(soundName) ? `[${tag[soundName]}] ` : "";
+        let reply = `[${head}${soundName}](${soundInfo["url"]}) ${(streamer == "custom") ? `\n***\n^(List of my own custom playsounds can be found) ^[here](${hostURL}/custom)` : ""}`;
 
         // adds commenting job to queue
         let job = new etc.CommentJob(item, reply, soundInfo["url"], soundName, speed, streamer, sub);
@@ -99,8 +102,10 @@ let parseComment = (item, sub = false) => {
 
     else 
         etc.log(streamer, `Playsound ${soundName} is not in ${streamer} playsound`);
+    */
 };
 
+/*
 let checkCommented = (job) => {
     let commented = false;
     return new Promise((res) => {
@@ -131,7 +136,8 @@ let comment = () => {
     // intercepts reply process, changing regular url with new speed changed url.
     if (((job.speed > 0) && (job.speed < 1)) || (job.speed > 1)) {
         let dateTime = Date.now(),
-            newFilename = psHandler.newFilename(job.soundURL, dateTime);
+            urlSplit = job.soundURL.split("/")
+            newFilename = psHandler.newFilename(urlSplit[urlSplit.length - 1], dateTime);
         psHandler.download(job.soundURL, job.speed, dateTime);
         job.speedURL = generatedURL + newFilename;
         job.reply = job.reply.replace(job.soundURL, job.speedURL);
@@ -182,17 +188,22 @@ let runJob = async () => {
     }
 };
 
+*/
+
 let pushDeleteQueue = (filename, dateTime) => {
+
     // 5 days after generation
     let expiry = dateTime + deleteDelay,
         filepath = `./public/playsounds/generated/${filename}`;
         deleteJob = new etc.DeleteJob(filepath, expiry);
     deleteQueue.push(deleteJob);
+
     // sorts queue in increasing order by deletion time
     deleteQueue.sort((x, y) => {
-    return x.expiryTime - y.expiryTime;
+        return x.expiryTime - y.expiryTime;
     });
 };
+
 
 let deleteJob = () => {
     if (deleteQueue.length > 0) {
@@ -212,29 +223,37 @@ let deleteJob = () => {
 
 let initDeleteJobs = () => {
     fs.readdir("./public/playsounds/generated", (err, files) => {
-    if (err)
-        return console.error("Error with initialising delete jobs");
-    // only adds custom playsounds to delete queue
-    files.forEach((file) => {
-        if (file.includes("_ss_")) {
-            let dateTime = parseInt(file.split("_ss_")[1].split(".")[0]);
-            etc.log("isetup", `Added ${file} to delete queue`);
-            pushDeleteQueue(file, dateTime);
-        }
-    });
+        if (err)
+            return console.error("Error with initialising delete jobs");
+            
+        // only adds custom playsounds to delete queue
+        files.forEach((file) => {
+            if (file.includes("_ss_")) {
+                let dateTime = parseInt(file.split("_ss_")[1].split(".")[0]);
+                etc.log("isetup", `Added ${file} to delete queue`);
+                pushDeleteQueue(file, dateTime);
+            }
+        });
     })
 }
 
+
 //------------------------INITIAL SETUP-------------------------//
 
+// starts listening to reddit comments in specified subreddits
 etc.listenComments(client, parseComment);
+
+// populates deleteQueue with any generated playsounds
 initDeleteJobs();
+
 // checks for any jobs in queue every 5 seconds
-setInterval(runJob, 5000);
-// checks for any delete jobs in queue every 30 seconds
-setInterval(deleteJob, 30000);
+//setInterval(runJob, 5000);
+
+// checks for any delete jobs in queue every 5 seconds
+setInterval(deleteJob, 5000);
 
 
 //-------------------------REPLIT STUFF-------------------------//
 
+// sets up the url handlers
 web.init();

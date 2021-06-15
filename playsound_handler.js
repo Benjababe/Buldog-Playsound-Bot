@@ -2,57 +2,90 @@ const etc = require("./etc"),
       { exec } = require("child_process"),
       cheerio = require("cheerio"),
       fs = require("fs"),
+      got = require("got"),
+      https = require("https"),
       request = require("request");
 
-const ffmpegPath = "./private/tools/ffmpeg";
-const generatedPath = "./public/playsounds/generated/";
+const ffmpegPath = "./private/tools/ffmpeg",
+      generatedPath = "./public/playsounds/generated/",
+      concatPath = "./private/concat.txt";
 
 // downloads playsound for speed editing. regular playsounds can just be linked to its url
-module.exports.download = (url, speed, dateTime) => {
-    let filename = url.split("/").slice(-1)[0].trim();
+module.exports.download = async (url, speed, dateTime) => {
 
-    const https = require('https');
-    const fs = require('fs');
+    return new Promise((res) => {
+        let filename = url.split("/").slice(-1)[0].trim();
 
-    const file = fs.createWriteStream(generatedPath + filename);
-    https.get(url, function(response) {
-        response.pipe(file);
-        file.on("finish", () => {
-            file.close();
-            setSpeed(filename, speed, dateTime);
+        const file = fs.createWriteStream(generatedPath + filename);
+        https.get(url, function(response) {
+            response.pipe(file);
+            file.on("finish", async () => {
+                file.close();
+                await setSpeed(filename, speed, dateTime);
+                res(true);
+            });
+        });
+    });
+}
+
+// combines playsounds in generated folder into one then delete the individual files
+
+// all playsounds need to be in ogg and encoded with opus codec since that's what buldog playsounds use by default.
+
+module.exports.combine = (files, filename) => {
+
+    return new Promise((res) => {
+    
+        // edge case
+        if (files.length == 0)
+            return;
+
+        let outPath = generatedPath + filename
+        exec(`${ffmpegPath} -i "concat:${files.join("|")}" ${outPath}`, (err, stderr) => {
+            if (err) {
+                console.error(err);
+            }
+            else if (stderr) console.error;
+            else {
+                files.forEach((file) => {
+                    fs.unlink(file, err => console.error);
+                });
+            }
+            res(true);
         });
     });
 }
 
 let setSpeed = (track, speed, dateTime) => {
-    // boldly assume every playsound has playback rate of 48KHz.
-    // i would use ffprobe but it's troublesome
-    let freq = 48000 * speed;
-    let newTrack = newFileName(track, dateTime);
+    return new Promise((res) => {
+        // boldly assume every playsound has playback rate of 48KHz.
+        // i would use ffprobe but it's troublesome
+        let freq = 48000 * speed;
+        let newTrack = newFileName(track, dateTime);
 
-    exec(`${ffmpegPath} -i ${generatedPath + track} -filter:a 'asetrate=${freq}' -y ${generatedPath + newTrack}`, (err, stderr) => {
-    if (err)  {
-        console.log(err);
-        process.exit(0);
-    }
-    else if (stderr)  console.log(stderr);
-    else {
-        // deletes downloaded file once frequency is changed
-        fs.unlink(generatedPath + track, (err) => console.log);
-    }
+        exec(`${ffmpegPath} -i ${generatedPath + track} -c:a libopus -filter:a 'asetrate=${freq}' -y ${generatedPath + newTrack}`, (err, stderr) => {
+            if (err)  {
+                console.log(err);
+            }
+            else if (stderr)  console.log(stderr);
+            else {
+                // deletes downloaded file once frequency is changed
+                fs.unlink(generatedPath + track, (err) => console.log);
+            }
+            res(true);
+        });
     });
 }
 
-let newFileName = (track, dateTime) => {
+let newFileName = (track, dateTime, genPath = false) => {
     let trackSpl = track.split(".");
-    let newTrack = `${trackSpl[0]}_ss_${dateTime}.${trackSpl[1]}`;
-    return newTrack;
+    //let newTrack = `${trackSpl[0]}_ss_${dateTime}.${trackSpl[1]}`;
+    let newTrack = `${trackSpl[0]}_ss_${dateTime}.ogg`;
+    return ((genPath) ? __dirname + generatedPath.substring(1) : "") + newTrack;
 }
 
-module.exports.newFilename = (url, dateTime) => {
-    let fn = url.split("/").slice(-1)[0].trim();
-    return newFileName(fn, dateTime);
-}
+// returns generated filename by datetime
+module.exports.newFilename = newFileName;
 
 //--------------PLAYSOUND FILE---------------
 
