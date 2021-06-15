@@ -11,7 +11,6 @@ const Snoowrap = require("snoowrap"),
 
 // global variable declaration
 
-    // queue of generated playsounds to delete
 let deleteQueue = [],
     // 5 days in ms
     deleteDelay = 432000000;

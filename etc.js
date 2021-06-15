@@ -43,10 +43,11 @@ module.exports.listenComments = (client, parseComment) => {
         let cStream = new CommentStream(client, {
             subreddit: subreddit,
             limit: 50,
-            pollTime: 10000,
-            requestDelay: 1000,
+            pollTime: 5000,
+            requestDelay: 10000,
             continueAfterRatelimitError: true
         });
+
         cStream.on("item", parseComment);
 
         /*
