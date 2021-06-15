@@ -2,13 +2,11 @@ const etc = require("./etc"),
       { exec } = require("child_process"),
       cheerio = require("cheerio"),
       fs = require("fs"),
-      got = require("got"),
       https = require("https"),
       request = require("request");
 
 const ffmpegPath = "./private/tools/ffmpeg",
-      generatedPath = "./public/playsounds/generated/",
-      concatPath = "./private/concat.txt";
+      generatedPath = "./public/playsounds/generated/";
 
 // downloads playsound for speed editing. regular playsounds can just be linked to its url
 module.exports.download = async (url, speed, dateTime) => {
@@ -26,6 +24,7 @@ module.exports.download = async (url, speed, dateTime) => {
             });
         });
     });
+
 }
 
 // combines playsounds in generated folder into one then delete the individual files
@@ -79,7 +78,6 @@ let setSpeed = (track, speed, dateTime) => {
 
 let newFileName = (track, dateTime, genPath = false) => {
     let trackSpl = track.split(".");
-    //let newTrack = `${trackSpl[0]}_ss_${dateTime}.${trackSpl[1]}`;
     let newTrack = `${trackSpl[0]}_ss_${dateTime}.ogg`;
     return ((genPath) ? __dirname + generatedPath.substring(1) : "") + newTrack;
 }
@@ -160,7 +158,7 @@ module.exports.updateCustom = () => {
                 psMsg = `${etc.getDateTime()} (Custom) Added playsound ${psName} into json file\n`;
                 fs.appendFileSync(changeLogPath, psMsg);
 
-                addWebPage(filename);
+                appendWebPage(filename);
             }
         });
 
@@ -170,7 +168,7 @@ module.exports.updateCustom = () => {
     });
 };
 
-let addWebPage = (filename) => {
+let appendWebPage = (filename) => {
     let elem = `<a id = "${filename}" href="${customURL}${filename}">${filename.split(".")[0]}</a><br>\n`;
 
     fs.appendFileSync(webPagePath, elem);
