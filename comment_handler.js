@@ -91,6 +91,8 @@ let processPlaysoundJobs = async (item, sounds, ps) => {
         dateTime = Date.now();
 
     if (ps.length == 1) {
+        let tag = tags[ps[1]];
+
         ps = ps[0];
 
         if (ps[0] == "custom")
@@ -111,7 +113,7 @@ let processPlaysoundJobs = async (item, sounds, ps) => {
             filename = psHandler.newFilename(filename, dateTime, false);
 
             url = generatedURL + filename;
-            replyComment(item, url, ps[1]);
+            replyComment(item, url, comment = ps[1], cmt_tags = tag, generated = true);
         }
     }
 
@@ -150,10 +152,10 @@ let combinePlaysounds = async (item, files, names) => {
 
     // generates reply and replies to playsound command
     let reply = names.join(" "),
-        tags = getTags(reply.split(" ")),
+        tags = getTags(names),
         url = generatedURL + filename;
 
-    replyComment(item, url, comment = reply, tags = tags);
+    replyComment(item, url, comment = reply, cmt_tags = tags, generated = true);
 }
 
 
@@ -184,16 +186,18 @@ let getTags = (sounds) => {
 }
 
 
-let replyComment = (item, url, comment = "", tags = "") => {
+let replyComment = (item, url, comment = "", cmt_tags = "", generated = false) => {
     if (comment == "")
         comment = "Your order";
 
-    if (tags != "")
-        tags = `[${tags}] `;
+    if (cmt_tags != "")
+        cmt_tags = `[${cmt_tags}] `;
 
-    item.reply(`[${tags}${comment}](${url})`);
+    let footer = (generated) ? "\n***\n^(Generated playsounds will be deleted in 5 days)" : "";
 
-    etc.log("Comment", `Replied with "[${tags}${comment}](${url})"`);
+    item.reply(`[${cmt_tags}${comment}](${url})${footer}`);
+
+    etc.log("Comment", `Replied with "[${cmt_tags}${comment}](${url})"`);
     etc.actionlog("Comment", `Commented playsound(s) ${comment}`);
 }
 

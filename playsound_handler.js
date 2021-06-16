@@ -97,8 +97,7 @@ const playsoundPath = "./private/playsounds.json",
       hostURL = "https://Buldog-Playsound-Bot.benjababe.repl.co",
       customURL = hostURL + "/playsounds/custom/";
 
-const buldogURL = "https://chatbot.admiralbulldog.live/playsounds",
-      lagariURL = "https://lacari.live/playsounds";
+const 
 
 
 // removes any unused custom playsounds
@@ -132,8 +131,8 @@ module.exports.cleanCustomPlaysounds = () => {
 // update playsounds for buldog/lagari/self
 module.exports.updatePlaysounds = async (streamer = "buldog") => {
     const siteURL = 
-    (streamer == "buldog") ? buldogURL :
-    (streamer == "lagari") ? lagariURL : "";
+    (streamer == "buldog") ? "https://chatbot.admiralbulldog.live/playsounds" :
+    (streamer == "lagari") ? "https://lacari.live/playsounds" : "";
 
     request(siteURL, (err, res, body) => {
         if (!err && res.statusCode == 200) {
