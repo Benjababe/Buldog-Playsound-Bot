@@ -1,26 +1,36 @@
 const etc = require("./etc"),
-      psHandler = require("./playsound_handler"),
-      creds = require("./private/credentials.json");
+    psHandler = require("./playsound_handler"),
+    creds = require("./private/credentials.json");
 
 const hostURL = "https://Buldog-Playsound-Bot.benjababe.repl.co",
-      generatedURL = hostURL + "/playsounds/generated/",
-      customURL = hostURL + "/playsounds/custom/",
-      playsoundJSONPath = "./private/playsounds.json";
+    generatedURL = hostURL + "/playsounds/generated/",
+    customURL = hostURL + "/playsounds/custom/",
+    playsoundJSONPath = "./private/playsounds.json";
 
 const fs = require("fs");
 
 const sources = {
     "lacari": "lagari",
     "lagari": "lagari",
-    "cs":     "custom",
+    "drunkmers": "drunkmers",
+    "feetmers": "drunkmers",
+    "cs": "custom",
     "custom": "custom"
 }
 
 const tags = { "daym": "cmonBruh" };
 
+class CommentJob {
+    constructor(item) {
+        this.item = item;
+        this.reply = "";
+    }
+}
+
 module.exports.parse = async (item, isPost = false) => {
     let psJobs = [],
-        comment = ((isPost) ? item.title.trim() : item.body.trim()).split(" ");
+        comment = ((isPost) ? item.title.trim() : item.body.trim()).split(" "),
+        i = comment.indexOf("!playsound");
 
     // 1: find streamer name
     // 2: find playsound name
@@ -42,8 +52,7 @@ module.exports.parse = async (item, isPost = false) => {
         comment.shift();
     comment.shift();
 
-    while (comment.length > 0 || 
-           (streamer != undefined && playsound != undefined && stage == 4)) {
+    while (comment.length > 0 || (streamer != undefined && playsound != undefined && stage == 4)) {
         if (stage == 1) {
             //streamer defaults to buldog
             streamer = Object.keys(sources).includes(comment[0]) ? sources[comment.shift()] : "buldog";
@@ -79,54 +88,33 @@ module.exports.parse = async (item, isPost = false) => {
 
     if (streamer !== undefined && playsound !== undefined)
         psJobs.push([streamer, playsound, speed]);
-        
-    processPlaysoundJobs(item, sounds, psJobs);
+
+    if (psJobs.length > 0)
+        generateCommentJob(item, sounds, psJobs);
 }
 
-// item = comment item
-// sounds = sound json
-// ps = [ streamer, playsound name, playsound speed ]
-let processPlaysoundJobs = async (item, sounds, ps) => {
+
+let generateCommentJob = async (item, sounds, ps) => {
     let url = "",
-        dateTime = Date.now();
+        files = [];
 
     if (ps.length == 1) {
-        let tag = tags[ps[1]];
-
         ps = ps[0];
-
         if (ps[0] == "custom")
             url = customURL + ps[1];
         else
             url = sounds[ps[0]][ps[1]]["url"];
-
-        // directly comment with url if speed is 1
-        if (ps[2] == 1)
-            replyComment(item, url, comment = ps[1]);
-
-        // download if custom speed is given
-        else {
-            await psHandler.download(url, ps[2], dateTime);
-
-            let filename = url.split("/");
-            filename = filename[filename.length-1];
-            filename = psHandler.newFilename(filename, dateTime, false);
-
-            url = generatedURL + filename;
-            replyComment(item, url, comment = ps[1], cmt_tags = tag, generated = true);
-        }
+        replyComment(item, url, comment = ps[1]);
     }
 
     // download playsounds if multiple and combine
     else {
-        let files = [],
-            names = [];
-
         while (ps.length > 0) {
-            let tempPS = ps.shift();
+            let tempPS = ps.shift(),
+                dateTime = Date.now();
 
-            let url = (tempPS[0] != "custom") ? sounds[tempPS[0]][tempPS[1]]["url"]:
-                      customURL + sounds[tempPS[0]][tempPS[1]]["filename"],
+            let url = (tempPS[0] != "custom") ? sounds[tempPS[0]][tempPS[1]]["url"] :
+                customURL + sounds[tempPS[0]][tempPS[1]]["filename"],
                 filename = url.split("/");
 
             filename = filename[filename.length - 1];
@@ -135,27 +123,23 @@ let processPlaysoundJobs = async (item, sounds, ps) => {
             await psHandler.download(url, tempPS[2], dateTime);
 
             // gets the downloaded filename and keeps it for later
-            files.push(psHandler.newFilename(filename, dateTime, true));
-            names.push(tempPS[1]);
+            files.push(psHandler.newFilename(filename, dateTime, genPath = true));
         }
-        
-        combinePlaysounds(item, files, names);
     }
+    combinePlaysounds(item, files);
 }
 
 
-let combinePlaysounds = async (item, files, names) => {
+let combinePlaysounds = async (item, files) => {
 
     // combined filename of playsounds
     let filename = getCombinedFilename(files);
     await psHandler.combine(files, filename);
 
     // generates reply and replies to playsound command
-    let reply = names.join(" "),
-        tags = getTags(names),
-        url = generatedURL + filename;
-
-    replyComment(item, url, comment = reply, cmt_tags = tags, generated = true);
+    let reply = filename.split("_ss_")[0].split("_").join(" "),
+        tags = getTags(reply.split(" "));
+    replyComment(item, generatedURL + filename, comment = reply, tags = tags);
 }
 
 
@@ -186,18 +170,16 @@ let getTags = (sounds) => {
 }
 
 
-let replyComment = (item, url, comment = "", cmt_tags = "", generated = false) => {
-    if (comment == "")
+let replyComment = (item, url, comment = "", tags = "") => {
+    if (comment === "")
         comment = "Your order";
 
-    if (cmt_tags != "")
-        cmt_tags = `[${cmt_tags}] `;
+    if (tags === "")
+        tags = `[${tags}] `;
 
-    let footer = (generated) ? "\n***\n^(Generated playsounds will be deleted in 5 days)" : "";
+    item.reply(`${tags}[${comment}](${url})`);
 
-    item.reply(`[${cmt_tags}${comment}](${url})${footer}`);
-
-    etc.log("Comment", `Replied with "[${cmt_tags}${comment}](${url})"`);
+    etc.log("Comment", `Replied with "${tags}[${comment}](${url})"`);
     etc.actionlog("Comment", `Commented playsound(s) ${comment}`);
 }
 
@@ -210,8 +192,8 @@ let checkCommented = (item) => {
             for (let i = 0; i < replies.length; i++) {
                 let author = replies[i].author.name;
                 if (author == creds["username"]) {
-                        commented = true;
-                        res(commented);
+                    commented = true;
+                    res(commented);
                 }
             }
             // if hasn't commented, comments and returns false promise so program can continue

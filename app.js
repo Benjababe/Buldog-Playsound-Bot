@@ -22,6 +22,10 @@ let parseComment = (item, sub = false) => {
 };
 
 
+// parses any errors from snoowrap
+let parseError = cmHandler.parseError;
+
+
 let pushDeleteQueue = (filename, dateTime) => {
 
     // 5 days after generation
@@ -61,8 +65,11 @@ let initDeleteJobs = () => {
         // only adds custom playsounds to delete queue
         files.forEach((file) => {
             if (file.includes("_ss_")) {
-                let dateTime = parseInt(file.split("_ss_")[1].split(".")[0]);
+                let dateTime = parseInt(file.split("_ss_")[1].split(".")[0]),
+                    delTime = ((deleteDelay + dateTime - Date.now())/3600000).toFixed(1);
+
                 etc.log("isetup", `Added ${file} to delete queue`);
+                etc.log("", `File will be deleted in ${delTime} hours`);
                 pushDeleteQueue(file, dateTime);
             }
         });

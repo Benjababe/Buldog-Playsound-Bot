@@ -1,12 +1,12 @@
 const etc = require("./etc"),
-      { exec } = require("child_process"),
-      cheerio = require("cheerio"),
-      fs = require("fs"),
-      https = require("https"),
-      request = require("request");
+    { exec } = require("child_process"),
+    cheerio = require("cheerio"),
+    fs = require("fs"),
+    https = require("https"),
+    request = require("request");
 
 const ffmpegPath = "./private/tools/ffmpeg",
-      generatedPath = "./public/playsounds/generated/";
+    generatedPath = "./public/playsounds/generated/";
 
 // downloads playsound for speed editing. regular playsounds can just be linked to its url
 module.exports.download = async (url, speed, dateTime) => {
@@ -15,7 +15,7 @@ module.exports.download = async (url, speed, dateTime) => {
         let filename = url.split("/").slice(-1)[0].trim();
 
         const file = fs.createWriteStream(generatedPath + filename);
-        https.get(url, function(response) {
+        https.get(url, function (response) {
             response.pipe(file);
             file.on("finish", async () => {
                 file.close();
@@ -34,10 +34,10 @@ module.exports.download = async (url, speed, dateTime) => {
 module.exports.combine = (files, filename) => {
 
     return new Promise((res) => {
-    
+
         // edge case
         if (files.length == 0)
-            return;
+            res(false);
 
         let outPath = generatedPath + filename;
 
@@ -47,6 +47,7 @@ module.exports.combine = (files, filename) => {
             }
             else if (stderr) console.error;
             else {
+                // when playsounds are concat, delete them all
                 files.forEach((file) => {
                     fs.unlink(file, err => console.error);
                 });
@@ -66,10 +67,10 @@ let setSpeed = (track, speed, dateTime) => {
 
         // be sure to use libopus as codec
         exec(`${ffmpegPath} -i ${generatedPath + track} -c:a libopus -filter:a 'asetrate=${freq}' -y ${generatedPath + newTrack}`, (err, stderr) => {
-            if (err)  {
+            if (err) {
                 console.log(err);
             }
-            else if (stderr)  console.log(stderr);
+            else if (stderr) console.log(stderr);
             else {
                 // deletes downloaded file once frequency is changed
                 fs.unlink(generatedPath + track, (err) => console.log);
@@ -91,13 +92,11 @@ module.exports.newFilename = newFileName;
 //--------------PLAYSOUND FILE---------------
 
 const playsoundPath = "./private/playsounds.json",
-      customPSPath = "./public/playsounds/custom",
-      changeLogPath = "./private/changelog.txt",
-      webPagePath = "./public/web/custom_playsounds.html",
-      hostURL = "https://Buldog-Playsound-Bot.benjababe.repl.co",
-      customURL = hostURL + "/playsounds/custom/";
-
-const 
+    customPSPath = "./public/playsounds/custom",
+    changeLogPath = "./private/changelog.txt",
+    webPagePath = "./public/web/custom_playsounds.html",
+    hostURL = "https://Buldog-Playsound-Bot.benjababe.repl.co",
+    customURL = hostURL + "/playsounds/custom/";
 
 
 // removes any unused custom playsounds
@@ -110,7 +109,7 @@ module.exports.cleanCustomPlaysounds = () => {
             console.error(err);
         else {
             let changes = false,
-                keys =  Array.from(Object.keys(sounds["custom"]));
+                keys = Array.from(Object.keys(sounds["custom"]));
 
             keys.forEach((key) => {
                 // if playsound exists in json but the file doesn't
@@ -129,28 +128,28 @@ module.exports.cleanCustomPlaysounds = () => {
 }
 
 // update playsounds for buldog/lagari/self
-module.exports.updatePlaysounds = async (streamer = "buldog") => {
-    const siteURL = 
-    (streamer == "buldog") ? "https://chatbot.admiralbulldog.live/playsounds" :
-    (streamer == "lagari") ? "https://lacari.live/playsounds" : "";
+module.exports.updatePajbotPlaysounds = async (streamer = "buldog") => {
+    const siteURL =
+        (streamer == "buldog") ? "https://chatbot.admiralbulldog.live/playsounds" :
+            (streamer == "lagari") ? "https://lacari.live/playsounds" : "";
 
     request(siteURL, (err, res, body) => {
         if (!err && res.statusCode == 200) {
             let $ = cheerio.load(body);
             let tables = $("table");
             Array.from(tables).forEach((table) => {
-                handlePlaysoundTable(table, streamer);
+                handlePajbotTable(table, streamer);
             });
             console.log(`${streamer} playsounds updated`);
-        } 
-        
-        else 
+        }
+
+        else
             console.error(err);
     });
 };
 
 // parses playsound table from the sites
-let handlePlaysoundTable = (table, streamer = "buldog") => {
+let handlePajbotTable = (table, streamer = "buldog") => {
     let soundData = fs.readFileSync(playsoundPath),
         sounds = JSON.parse(soundData);
 
@@ -158,23 +157,73 @@ let handlePlaysoundTable = (table, streamer = "buldog") => {
         rows = $("tbody > tr");
 
     Array.from(rows).forEach(row => {
-    let cells = cheerio.load(row)("td");
-    let cellName = cells[0]["children"][0]["data"].trim().toLowerCase(),
-        cellSound = cheerio
-        .load(cells[5])("[data-volume]")
-        .attr("data-link")
-        .trim();
+        let cells = cheerio.load(row)("td");
+        let cellName = cells[0]["children"][0]["data"].trim().toLowerCase(),
+            cellSound = cheerio
+                .load(cells[5])("[data-volume]")
+                .attr("data-link")
+                .trim();
 
-    if (sounds[streamer][cellName] == undefined) {
-        sounds[streamer][cellName] = { url: cellSound };
-        psMsg = `${etc.getDateTime()} (${streamer}) ` + 
-                "Added playsound" +` ${cellName} into json file\n`;
-        fs.appendFileSync(changeLogPath, psMsg);
-    }
+        if (sounds[streamer][cellName] == undefined) {
+            sounds[streamer][cellName] = { "url": cellSound };
+            psMsg = `${etc.getDateTime()} (${streamer}) ` +
+                "Added playsound" + ` ${cellName} into json file\n`;
+            fs.appendFileSync(changeLogPath, psMsg);
+        }
     });
 
     fs.writeFileSync(playsoundPath, JSON.stringify(sounds));
 };
+
+
+module.exports.updateStreamElementsPlaysound = async (streamer) => {
+    let x = ""
+    let streamerURL = `https://api.streamelements.com/kappa/v2/channels/${streamer}`;
+
+    request(streamerURL, (err, res, body) => {
+        if (err && res.statusCode != 200)
+            return;
+
+        let json = JSON.parse(body),
+            streamerID = json["_id"],
+            storeURL = `https://api.streamelements.com/kappa/v2/store/${streamerID}/items`;
+
+        request(storeURL, (err, res, body) => {
+            if (err && res.statusCode != 200)
+                return;
+
+            let data = JSON.parse(body);
+            handleStreamElementsArray(streamer, data);
+            console.log(`${streamer} playsounds updated`);
+        });
+
+    });
+}
+
+
+let handleStreamElementsArray = (streamer, array) => {
+    let soundData = fs.readFileSync(playsoundPath),
+        sounds = JSON.parse(soundData);
+
+    array.forEach((item) => {
+        let psName = item["name"].trim().toLowerCase(),
+            psURL = item["alert"]["audio"]["src"];
+
+        while (psName.includes(" ")) {
+            psName = psName.replace(" ", "_");
+        }
+
+        if (sounds[streamer][psName] == undefined) {
+            sounds[streamer][psName] = { "url": psURL };
+            psMsg = `${etc.getDateTime()} (${streamer}) ` +
+                "Added playsound" + ` ${psName} into json file\n`;
+            fs.appendFileSync(changeLogPath, psMsg);
+        }
+    });
+
+    fs.writeFileSync(playsoundPath, JSON.stringify(sounds));
+};
+
 
 module.exports.updateCustom = () => {
     fs.readdir(customPSPath, (err, files) => {

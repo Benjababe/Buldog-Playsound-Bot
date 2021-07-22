@@ -37,28 +37,37 @@ module.exports.actionlog = (header, msg) => {
 }
 
 module.exports.listenComments = (client, parseComment) => {
-    const subreddits = ["admiralbulldog", "dota2", "testingground4bots"];
+    const subreddits = ["admiralbulldog",       "dota2", 
+                        "drunkmers",            "lacari",
+                        "testingground4bots"];
 
     subreddits.forEach((subreddit) => {
-        let cStream = new CommentStream(client, {
-            subreddit: subreddit,
-            limit: 50,
-            pollTime: 5000,
-            requestDelay: 10000,
-            continueAfterRatelimitError: true
-        });
+        try {
+            let cStream = new CommentStream(client, {
+                subreddit: subreddit,
+                limit: 25,
+                pollTime: 10000,
+                requestDelay: 10000,
+                continueAfterRatelimitError: true
+            });
 
-        cStream.on("item", parseComment);
+            cStream.on("item", parseComment);
 
-        /*
-        let sStream = new SubmissionStream(client, {
-            subreddit: "admiralbulldog",
-            limit: 50,
-            pollTime: 10000,
-            continueAfterRatelimitError: true
-        });
-        sStream.on("item", (i) => parseComment(i, true));
-        */
+            /*
+            let sStream = new SubmissionStream(client, {
+                subreddit: "admiralbulldog",
+                limit: 50,
+                pollTime: 10000,
+                continueAfterRatelimitError: true
+            });
+            sStream.on("item", (i) => parseComment(i, true));
+            */
+        } 
+        
+        catch (ex) {
+            console.error("Error caught");
+            console.error(ex);
+        }
     });
 };
 

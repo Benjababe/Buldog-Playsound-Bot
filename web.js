@@ -1,9 +1,9 @@
 const etc = require("./etc"),
-      express = require("express"),
-      https = require("https"),
-      multer = require("multer"),
-      path = require("path"),
-      psHandler = require("./playsound_handler");
+    express = require("express"),
+    https = require("https"),
+    multer = require("multer"),
+    path = require("path"),
+    psHandler = require("./playsound_handler");
 
 
 module.exports.init = () => {
@@ -11,11 +11,11 @@ module.exports.init = () => {
     const hostURL = "https://Buldog-Playsound-Bot.benjababe.repl.co";
 
     const storage = multer.diskStorage({
-        destination: function(req, file, cb) {
+        destination: function (req, file, cb) {
             cb(null, "./public/playsounds/uploads");
         },
 
-        filename: function(req, file, cb) {
+        filename: function (req, file, cb) {
             cb(null, file.fieldname + path.extname(file.originalname));
         }
     });
@@ -37,9 +37,10 @@ module.exports.init = () => {
     });
 
     app.get("/updateplaysound", (req, res) => {
+        psHandler.updatePajbotPlaysounds("buldog");
+        psHandler.updatePajbotPlaysounds("lagari");
+        psHandler.updateStreamElementsPlaysound("drunkmers");
         psHandler.updateCustom();
-        psHandler.updatePlaysounds("buldog");
-        psHandler.updatePlaysounds("lagari");
 
         res.send("Updating playsounds...");
         res.end();
@@ -86,8 +87,8 @@ module.exports.init = () => {
     app.use(express.static("public"));
     app.listen(3000);
 
-    // pinging to keep the page up. not sure if it actually works
+    // updates playsounds every 6 hours
     setInterval(() => {
-        https.get(hostURL + "/updateplaysound");
-    }, 1800000); 
+        https.get(`${hostURL}/updateplaysound`);
+    }, 21600000);
 }
