@@ -42,32 +42,14 @@ module.exports.listenComments = (client, parseComment) => {
                         "testingground4bots"];
 
     subreddits.forEach((subreddit) => {
-        try {
-            let cStream = new CommentStream(client, {
-                subreddit: subreddit,
-                limit: 25,
-                pollTime: 10000,
-                requestDelay: 10000,
-                continueAfterRatelimitError: true
-            });
+        let cStream = new CommentStream(client, {
+            subreddit: subreddit,
+            limit: 25,
+            pollTime: 2000,
+            continueAfterRatelimitError: false
+        });
 
-            cStream.on("item", parseComment);
-
-            /*
-            let sStream = new SubmissionStream(client, {
-                subreddit: "admiralbulldog",
-                limit: 50,
-                pollTime: 10000,
-                continueAfterRatelimitError: true
-            });
-            sStream.on("item", (i) => parseComment(i, true));
-            */
-        } 
-        
-        catch (ex) {
-            console.error("Error caught");
-            console.error(ex);
-        }
+        cStream.on("item", parseComment);
     });
 };
 

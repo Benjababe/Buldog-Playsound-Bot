@@ -46,7 +46,7 @@ let deleteJob = () => {
         let job = deleteQueue[0];
         
         // while first item in queue has expired
-        if (job.expiryTime < Date.now()) {
+        if (job.expiryTime < Date.now() && fs.existsSync(job.filepath)) {
             console.log(`Deleting ${job.filepath}...`);
             fs.unlink(job.filepath, (err) => console.error);
             deleteQueue.shift();

@@ -6,6 +6,7 @@ const etc = require("./etc"),
     request = require("request");
 
 const ffmpegPath = "./private/tools/ffmpeg",
+    customPath = "./public/playsounds/custom/",
     generatedPath = "./public/playsounds/generated/";
 
 // downloads playsound for speed editing. regular playsounds can just be linked to its url

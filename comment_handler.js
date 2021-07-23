@@ -10,12 +10,15 @@ const hostURL = "https://Buldog-Playsound-Bot.benjababe.repl.co",
 const fs = require("fs");
 
 const sources = {
-    "lacari": "lagari",
-    "lagari": "lagari",
-    "drunkmers": "drunkmers",
-    "feetmers": "drunkmers",
-    "cs": "custom",
-    "custom": "custom"
+    "lc":           "lagari",
+    "lg":           "lagari",
+    "lacari":       "lagari",
+    "lagari":       "lagari",
+    "dm":           "drunkmers",
+    "drunkmers":    "drunkmers",
+    "feetmers":     "drunkmers",
+    "cs":           "custom",
+    "custom":       "custom"
 }
 
 const tags = { "daym": "cmonBruh" };
@@ -29,8 +32,7 @@ class CommentJob {
 
 module.exports.parse = async (item, isPost = false) => {
     let psJobs = [],
-        comment = ((isPost) ? item.title.trim() : item.body.trim()).split(" "),
-        i = comment.indexOf("!playsound");
+        comment = ((isPost) ? item.title.trim() : item.body.trim()).split(" ");
 
     // 1: find streamer name
     // 2: find playsound name
@@ -47,6 +49,8 @@ module.exports.parse = async (item, isPost = false) => {
     let commented = await checkCommented(item);
     if (!comment.includes("!playsound") || commented)
         return;
+    
+    etc.log("Comment", `Processing: ${comment.join(" ")}`);
 
     while (comment[0] != "!playsound")
         comment.shift();
@@ -96,22 +100,39 @@ module.exports.parse = async (item, isPost = false) => {
 
 let generateCommentJob = async (item, sounds, ps) => {
     let url = "",
-        files = [];
+        dateTime = Date.now();
 
     if (ps.length == 1) {
         ps = ps[0];
         if (ps[0] == "custom")
-            url = customURL + ps[1];
+            url = customURL + ps[1] + ".ogg";
         else
             url = sounds[ps[0]][ps[1]]["url"];
-        replyComment(item, url, comment = ps[1]);
+            
+        // directly comment with url if speed is 1
+        if (ps[2] == 1)
+            replyComment(item, url, ps[1]);
+
+        // download if custom speed is given
+        else {
+            await psHandler.download(url, ps[2], dateTime);
+
+            let filename = url.split("/");
+            filename = filename[filename.length-1];
+            filename = psHandler.newFilename(filename, dateTime, false);
+
+            url = generatedURL + filename;
+            replyComment(item, url, ps[1], tags[ps[1]]);
+        }
     }
 
     // download playsounds if multiple and combine
     else {
+        let files = [],
+            names = [];
+
         while (ps.length > 0) {
-            let tempPS = ps.shift(),
-                dateTime = Date.now();
+            let tempPS = ps.shift();
 
             let url = (tempPS[0] != "custom") ? sounds[tempPS[0]][tempPS[1]]["url"] :
                 customURL + sounds[tempPS[0]][tempPS[1]]["filename"],
@@ -124,21 +145,25 @@ let generateCommentJob = async (item, sounds, ps) => {
 
             // gets the downloaded filename and keeps it for later
             files.push(psHandler.newFilename(filename, dateTime, genPath = true));
+
+            // same for the playsound name
+            names.push(tempPS[1]);
         }
+        combinePlaysounds(item, files, names);
     }
-    combinePlaysounds(item, files);
 }
 
 
-let combinePlaysounds = async (item, files) => {
+let combinePlaysounds = async (item, files, names) => {
 
     // combined filename of playsounds
     let filename = getCombinedFilename(files);
     await psHandler.combine(files, filename);
 
     // generates reply and replies to playsound command
-    let reply = filename.split("_ss_")[0].split("_").join(" "),
+    let reply = names.join(" "),
         tags = getTags(reply.split(" "));
+
     replyComment(item, generatedURL + filename, comment = reply, tags = tags);
 }
 
@@ -171,13 +196,14 @@ let getTags = (sounds) => {
 
 
 let replyComment = (item, url, comment = "", tags = "") => {
-    if (comment === "")
+    if (comment == "")
         comment = "Your order";
 
-    if (tags === "")
+    if (tags != "")
         tags = `[${tags}] `;
 
     item.reply(`${tags}[${comment}](${url})`);
+    item.upvote();
 
     etc.log("Comment", `Replied with "${tags}[${comment}](${url})"`);
     etc.actionlog("Comment", `Commented playsound(s) ${comment}`);
