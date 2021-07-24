@@ -10,29 +10,44 @@ const hostURL = "https://Buldog-Playsound-Bot.benjababe.repl.co",
 const fs = require("fs");
 
 const sources = {
-    "lc":           "lagari",
-    "lg":           "lagari",
-    "lacari":       "lagari",
-    "lagari":       "lagari",
-    "dm":           "drunkmers",
-    "drunkmers":    "drunkmers",
-    "feetmers":     "drunkmers",
-    "cs":           "custom",
-    "custom":       "custom"
+    "lc": "lagari",
+    "lg": "lagari",
+    "lacari": "lagari",
+    "lagari": "lagari",
+    "dm": "drunkmers",
+    "drunkmers": "drunkmers",
+    "feetmers": "drunkmers",
+    "cs": "custom",
+    "custom": "custom"
 }
 
-const tags = { "daym": "cmonBruh" };
+const tagsJSON = { "daym": "cmonBruh" };
 
-class CommentJob {
-    constructor(item) {
+class ReplyJob {
+    constructor(item, url, comment, tags) {
         this.item = item;
-        this.reply = "";
+        this.itemID = item.id;
+        this.url = url;
+        this.comment = comment;
+        this.tags = tags;
     }
 }
+
+let replyQueue = [];
 
 module.exports.parse = async (item, isPost = false) => {
     let psJobs = [],
         comment = ((isPost) ? item.title.trim() : item.body.trim()).split(" ");
+
+    // if comment doesn't have the playsound command
+    // or if already replied to command
+    if (!comment.includes("!playsound") || await checkCommented(item))
+        return;
+
+    replyQueue.forEach((reply) => {
+        if (reply.itemID == item.id)
+            return;
+    });
 
     // 1: find streamer name
     // 2: find playsound name
@@ -44,12 +59,6 @@ module.exports.parse = async (item, isPost = false) => {
         soundData = fs.readFileSync(playsoundJSONPath),
         sounds = JSON.parse(soundData);
 
-    // if comment doesn't have the playsound command
-    // or if already replied to command
-    let commented = await checkCommented(item);
-    if (!comment.includes("!playsound") || commented)
-        return;
-    
     etc.log("Comment", `Processing: ${comment.join(" ")}`);
 
     while (comment[0] != "!playsound")
@@ -68,8 +77,8 @@ module.exports.parse = async (item, isPost = false) => {
 
             // if playsound doesn't exist
             if (sounds[streamer][playsound] == undefined) {
-                playsound = undefined
-                break;
+                etc.log("Comment", `Playsound ${playsound} doesn't exist for ${streamer}`);
+                return;
             }
 
             stage++;
@@ -93,12 +102,13 @@ module.exports.parse = async (item, isPost = false) => {
     if (streamer !== undefined && playsound !== undefined)
         psJobs.push([streamer, playsound, speed]);
 
-    if (psJobs.length > 0)
-        generateCommentJob(item, sounds, psJobs);
+    if (psJobs.length > 0) {
+        generateReplyJob(item, sounds, psJobs);
+    }
 }
 
 
-let generateCommentJob = async (item, sounds, ps) => {
+let generateReplyJob = async (item, sounds, ps) => {
     let url = "",
         dateTime = Date.now();
 
@@ -108,21 +118,22 @@ let generateCommentJob = async (item, sounds, ps) => {
             url = customURL + ps[1] + ".ogg";
         else
             url = sounds[ps[0]][ps[1]]["url"];
-            
+
         // directly comment with url if speed is 1
-        if (ps[2] == 1)
-            replyComment(item, url, ps[1]);
+        if (ps[2] == 1) {
+            pushReplyQueue(item, url, ps[1], tagsJSON[ps[1]]);
+        }
 
         // download if custom speed is given
         else {
             await psHandler.download(url, ps[2], dateTime);
 
             let filename = url.split("/");
-            filename = filename[filename.length-1];
+            filename = filename[filename.length - 1];
             filename = psHandler.newFilename(filename, dateTime, false);
 
             url = generatedURL + filename;
-            replyComment(item, url, ps[1], tags[ps[1]]);
+            pushReplyQueue(item, url, ps[1], tagsJSON[ps[1]]);
         }
     }
 
@@ -157,14 +168,17 @@ let generateCommentJob = async (item, sounds, ps) => {
 let combinePlaysounds = async (item, files, names) => {
 
     // combined filename of playsounds
-    let filename = getCombinedFilename(files);
+    //let filename = getCombinedFilename(files);
+    // using this for now, since filenames can be too long
+    let filename = `xyz_ss_${Date.now()}.ogg`
     await psHandler.combine(files, filename);
 
     // generates reply and replies to playsound command
-    let reply = names.join(" "),
-        tags = getTags(reply.split(" "));
+    let url = generatedURL + filename,
+        comment = names.join(" "),
+        tags = getTags(comment.split(" "));
 
-    replyComment(item, generatedURL + filename, comment = reply, tags = tags);
+    pushReplyQueue(item, url, comment, tags);
 }
 
 
@@ -185,9 +199,9 @@ let getCombinedFilename = (files) => {
 let getTags = (sounds) => {
     let commentTags = [];
 
-    Array.from(Object.keys(tags)).forEach((name) => {
+    Array.from(Object.keys(tagsJSON)).forEach((name) => {
         if (sounds.includes(name)) {
-            commentTags.push(tags[name]);
+            commentTags.push(tagsJSON[name]);
         }
     });
 
@@ -195,19 +209,61 @@ let getTags = (sounds) => {
 }
 
 
-let replyComment = (item, url, comment = "", tags = "") => {
-    if (comment == "")
-        comment = "Your order";
-
-    if (tags != "")
-        tags = `[${tags}] `;
-
-    item.reply(`${tags}[${comment}](${url})`);
-    item.upvote();
-
-    etc.log("Comment", `Replied with "${tags}[${comment}](${url})"`);
-    etc.actionlog("Comment", `Commented playsound(s) ${comment}`);
+let pushReplyQueue = (item, url, comment, tags = "") => {
+    let replyJob = new ReplyJob(item, url, comment, tags);
+    replyQueue.push(replyJob);
+    replyComment();
 }
+
+
+let replyComment = async () => {
+    if (replyQueue.length == 0)
+        return;
+
+    let job = replyQueue.shift();
+    try {
+        // final comment check
+        if (!await checkCommented(job.item)) {
+            await job.item.reply(`${job.tags}[${job.comment}](${job.url})`);
+            await job.item.upvote();
+
+            etc.log("Comment", `Replied with "${job.tags}[${job.comment}](${job.url})"`);
+            etc.actionlog("Comment", `Commented playsound(s) ${job.comment}`);
+        }
+    }
+
+    catch (e) {
+        replyQueue.unshift(job);
+
+        console.error("Exception caught, probably comment rate limit");
+        let delay = parseRateLimit(e.message);
+
+        if (delay > 0)
+            console.log("Delay is ", delay, "seconds");
+
+        setTimeout(replyComment, delay * 1000);
+    }
+}
+
+
+let parseRateLimit = (ex) => {
+    let regex = /Take a break for [0-9.]{1,5} (minute[s]{0,1}|second[s]{0,1}){1} before trying again/gm;
+
+    let found = ex.match(regex);
+
+    // matching string found
+    if (found.length == 1) {
+        found = found[0];
+        console.log(found);
+        let time = found.replace(/[^\d-]/g, ''),
+            denom = found.includes("second") ? 1 : 60;
+        return time * denom;
+    }
+
+    else
+        return -1;
+};
+
 
 let checkCommented = (item) => {
     let commented = false;

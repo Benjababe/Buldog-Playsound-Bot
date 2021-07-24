@@ -2,12 +2,7 @@ const etc = require("./etc"),
       web = require("./web"),
       cmHandler = require("./comment_handler"),
       psHandler = require("./playsound_handler"),
-      creds = require("./private/credentials.json"),
       fs = require("fs");
-
-
-const Snoowrap = require("snoowrap"),
-      client = new Snoowrap(creds);
 
 // global variable declaration
 
@@ -84,7 +79,9 @@ let initDeleteJobs = () => {
 psHandler.cleanCustomPlaysounds();
 
 // starts listening to reddit comments in specified subreddits
-etc.listenComments(client, parseComment);
+setInterval(() => {
+    etc.listenComments(parseComment);
+}, 30000);
 
 // populates deleteQueue with any generated playsounds
 initDeleteJobs();

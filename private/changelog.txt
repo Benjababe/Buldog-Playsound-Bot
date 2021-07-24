@@ -229,3 +229,4 @@
 [23/07/2021 - 01:18:37 AM] (drunkmers) Added playsound drunkmers_smash into json file
 [23/07/2021 - 01:18:37 AM] (drunkmers) Added playsound kuya_onichan into json file
 [23/07/2021 - 01:18:37 AM] (drunkmers) Added playsound bulldog_stun_him into json file
+[24/07/2021 - 01:13:14 AM] (custom) Added playsound drunkmerspantsu into json file

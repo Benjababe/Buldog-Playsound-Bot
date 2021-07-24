@@ -1,32 +1,37 @@
 const fs = require("fs"),
-      { CommentStream, SubmissionStream } = require("snoostorm");
+      creds = require("./private/credentials.json"),
 
+      Snoowrap = require("snoowrap"),
+      client = new Snoowrap(creds);
+
+client.config({ continueAfterRatelimitError: false });
+      
 const actionLogPath = "./private/actionlog.txt";
 
 module.exports.CommentJob = class {
-  constructor(item, reply, soundURL, soundName, speed, streamer, sub) {
-    this.item = item;
-    this.reply = reply;
-    this.soundURL = soundURL;
-    this.speedURL = "";
-    this.soundName = soundName;
-    this.speed = speed;
-    this.streamer = streamer;
-    this.sub = sub;
-  }
+    constructor(item, reply, soundURL, soundName, speed, streamer, sub) {
+        this.item = item;
+        this.reply = reply;
+        this.soundURL = soundURL;
+        this.speedURL = "";
+        this.soundName = soundName;
+        this.speed = speed;
+        this.streamer = streamer;
+        this.sub = sub;
+    }
 }
 
 module.exports.DeleteJob = class {
-  constructor(filepath, expiryTime) {
-    this.filepath = filepath;
-    this.expiryTime = expiryTime;
-  }
+    constructor(filepath, expiryTime) {
+        this.filepath = filepath;
+        this.expiryTime = expiryTime;
+    }
 }
 
 // prints onto console
 module.exports.log = (header, text, bracket = true) => {
-  header = (header.length == 0) ? "" : (bracket) ? `[${header}] ` : `${header} `;
-  console.log(`${header}${text}`);
+    header = (header.length == 0) ? "" : (bracket) ? `[${header}] ` : `${header} `;
+    console.log(`${header}${text}`);
 }
 
 
@@ -36,22 +41,25 @@ module.exports.actionlog = (header, msg) => {
     fs.appendFileSync(actionLogPath, toWrite);
 }
 
-module.exports.listenComments = (client, parseComment) => {
+module.exports.listenComments = (parseComment) => {
     const subreddits = ["admiralbulldog",       "dota2", 
                         "drunkmers",            "lacari",
                         "testingground4bots"];
 
-    subreddits.forEach((subreddit) => {
-        let cStream = new CommentStream(client, {
-            subreddit: subreddit,
-            limit: 25,
-            pollTime: 2000,
-            continueAfterRatelimitError: false
-        });
-
-        cStream.on("item", parseComment);
+    // inefficient since it goes through old comments
+    // but doesn't result in ratelimit exceeding
+    subreddits.forEach(async (subreddit) => {
+        try {
+            await client.getSubreddit(subreddit).getNewComments().then((comments) => {
+                comments.forEach(parseComment);
+            });
+        } catch (e) {
+            console.log("Comment reading rate limit exceeded");
+        }
     });
 };
+
+let sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
 let dtFormat = (dt) => ("0" + dt).slice(-2);
 
