@@ -9,16 +9,22 @@ const hostURL = "https://Buldog-Playsound-Bot.benjababe.repl.co",
 
 const fs = require("fs");
 
+const STREAMER_BULLDOG = "bulldog",
+    STREAMER_LACARI = "lacari",
+    STREAMER_DRUNKMERS = "drunkmers",
+    STREAMER_CUSTOM = "custom";
+
 const sources = {
-    "lc": "lagari",
-    "lg": "lagari",
-    "lacari": "lagari",
-    "lagari": "lagari",
-    "dm": "drunkmers",
-    "drunkmers": "drunkmers",
-    "feetmers": "drunkmers",
-    "cs": "custom",
-    "custom": "custom"
+    "lc": STREAMER_LACARI,
+    "lg": STREAMER_LACARI,
+    "lacari": STREAMER_LACARI,
+    "lagari": STREAMER_LACARI,
+    "dm": STREAMER_DRUNKMERS,
+    "fm": STREAMER_DRUNKMERS,
+    "drunkmers": STREAMER_DRUNKMERS,
+    "feetmers": STREAMER_DRUNKMERS,
+    "cs": STREAMER_CUSTOM,
+    "custom": STREAMER_CUSTOM
 }
 
 const tagsJSON = { "daym": "cmonBruh" };
@@ -37,13 +43,14 @@ let replyQueue = [];
 
 module.exports.parse = async (item, isPost = false) => {
     let psJobs = [],
-        comment = ((isPost) ? item.title.trim() : item.body.trim()).split(" ");
+        comment = ((isPost) ? item.title.trim() : item.body.trim()).split(/\s+/);
 
     // if comment doesn't have the playsound command
     // or if already replied to command
     if (!comment.includes("!playsound") || await checkCommented(item))
         return;
 
+    // check if comment is already in replyQueue
     replyQueue.forEach((reply) => {
         if (reply.itemID == item.id)
             return;
@@ -61,14 +68,16 @@ module.exports.parse = async (item, isPost = false) => {
 
     etc.log("Comment", `Processing: ${comment.join(" ")}`);
 
+    // skips everything until playsound command is found
     while (comment[0] != "!playsound")
         comment.shift();
+    // removes "!playsound"
     comment.shift();
 
     while (comment.length > 0 || (streamer != undefined && playsound != undefined && stage == 4)) {
         if (stage == 1) {
-            //streamer defaults to buldog
-            streamer = Object.keys(sources).includes(comment[0]) ? sources[comment.shift()] : "buldog";
+            //streamer defaults to buldog if it's none of the keys in sources json
+            streamer = Object.keys(sources).includes(comment[0]) ? sources[comment.shift()] : STREAMER_BULLDOG;
             stage++;
         }
 
@@ -114,7 +123,7 @@ let generateReplyJob = async (item, sounds, ps) => {
 
     if (ps.length == 1) {
         ps = ps[0];
-        if (ps[0] == "custom")
+        if (ps[0] == STREAMER_CUSTOM)
             url = customURL + ps[1] + ".ogg";
         else
             url = sounds[ps[0]][ps[1]]["url"];
@@ -145,7 +154,7 @@ let generateReplyJob = async (item, sounds, ps) => {
         while (ps.length > 0) {
             let tempPS = ps.shift();
 
-            let url = (tempPS[0] != "custom") ? sounds[tempPS[0]][tempPS[1]]["url"] :
+            let url = (tempPS[0] != STREAMER_CUSTOM) ? sounds[tempPS[0]][tempPS[1]]["url"] :
                 customURL + sounds[tempPS[0]][tempPS[1]]["filename"],
                 filename = url.split("/");
 

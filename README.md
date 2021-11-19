@@ -11,7 +11,7 @@ or for lacari playsounds
 ```
 or even for drunkmers playsounds
 ```
-!playsound dm/drunkmers/feetmers kelly_laugh
+!playsound dm/fm/drunkmers/feetmers kelly_laugh
 ```
 or even for custom playsounds
 ```

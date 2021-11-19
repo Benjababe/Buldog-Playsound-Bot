@@ -5,6 +5,10 @@ const etc = require("./etc"),
     path = require("path"),
     psHandler = require("./playsound_handler");
 
+const STREAMER_BULLDOG = "bulldog",
+      STREAMER_LACARI = "lacari",
+      STREAMER_DRUNKMERS = "drunkmers";
+
 
 module.exports.init = () => {
     const app = express();
@@ -37,9 +41,9 @@ module.exports.init = () => {
     });
 
     app.get("/updateplaysound", (req, res) => {
-        psHandler.updatePajbotPlaysounds("buldog");
-        psHandler.updatePajbotPlaysounds("lagari");
-        psHandler.updateStreamElementsPlaysound("drunkmers");
+        psHandler.updatePajbotPlaysounds(STREAMER_BULLDOG);
+        psHandler.updatePajbotPlaysounds(STREAMER_LACARI);
+        psHandler.updateStreamElementsPlaysound(STREAMER_DRUNKMERS);
         psHandler.updateCustom();
 
         res.send("Updating playsounds...");
@@ -89,6 +93,9 @@ module.exports.init = () => {
 
     // updates playsounds every 6 hours
     setInterval(() => {
-        https.get(`${hostURL}/updateplaysound`);
+        psHandler.updatePajbotPlaysounds(STREAMER_BULLDOG);
+        psHandler.updatePajbotPlaysounds(STREAMER_LACARI);
+        psHandler.updateStreamElementsPlaysound(STREAMER_DRUNKMERS);
+        psHandler.updateCustom();
     }, 21600000);
 }

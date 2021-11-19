@@ -5,8 +5,11 @@ const etc = require("./etc"),
     https = require("https"),
     request = require("request");
 
+const STREAMER_BULLDOG = "bulldog",
+      STREAMER_LACARI = "lacari",
+      STREAMER_CUSTOM = "custom";
+
 const ffmpegPath = "./private/tools/ffmpeg",
-    customPath = "./public/playsounds/custom/",
     generatedPath = "./public/playsounds/generated/";
 
 // downloads playsound for speed editing. regular playsounds can just be linked to its url
@@ -110,14 +113,14 @@ module.exports.cleanCustomPlaysounds = () => {
             console.error(err);
         else {
             let changes = false,
-                keys = Array.from(Object.keys(sounds["custom"]));
+                keys = Array.from(Object.keys(sounds[STREAMER_CUSTOM]));
 
             keys.forEach((key) => {
                 // if playsound exists in json but the file doesn't
                 // remove playsound from json
                 if (!files.includes(key + ".ogg")) {
                     changes = true;
-                    delete sounds["custom"][key];
+                    delete sounds[STREAMER_CUSTOM][key];
                 }
             });
 
@@ -129,10 +132,10 @@ module.exports.cleanCustomPlaysounds = () => {
 }
 
 // update playsounds for buldog/lagari/self
-module.exports.updatePajbotPlaysounds = async (streamer = "buldog") => {
+module.exports.updatePajbotPlaysounds = (streamer) => {
     const siteURL =
-        (streamer == "buldog") ? "https://chatbot.admiralbulldog.live/playsounds" :
-            (streamer == "lagari") ? "https://lacari.live/playsounds" : "";
+        (streamer == STREAMER_BULLDOG) ? "https://chatbot.admiralbulldog.live/playsounds" :
+            (streamer == STREAMER_LACARI) ? "https://lacari.live/playsounds" : "";
 
     request(siteURL, (err, res, body) => {
         if (!err && res.statusCode == 200) {
@@ -150,7 +153,7 @@ module.exports.updatePajbotPlaysounds = async (streamer = "buldog") => {
 };
 
 // parses playsound table from the sites
-let handlePajbotTable = (table, streamer = "buldog") => {
+let handlePajbotTable = (table, streamer) => {
     let soundData = fs.readFileSync(playsoundPath),
         sounds = JSON.parse(soundData);
 
@@ -177,8 +180,7 @@ let handlePajbotTable = (table, streamer = "buldog") => {
 };
 
 
-module.exports.updateStreamElementsPlaysound = async (streamer) => {
-    let x = ""
+module.exports.updateStreamElementsPlaysound = (streamer) => {
     let streamerURL = `https://api.streamelements.com/kappa/v2/channels/${streamer}`;
 
     request(streamerURL, (err, res, body) => {
@@ -234,14 +236,16 @@ module.exports.updateCustom = () => {
             let soundData = fs.readFileSync(playsoundPath),
                 sounds = JSON.parse(soundData);
 
+            clearWebPage();
+
             files.forEach((filename) => {
                 let psName = filename.split(".")[0];
-                if (sounds["custom"][psName] == undefined) {
-                    sounds["custom"][psName] = { "filename": filename };
+                appendWebPage(filename);
+
+                if (sounds[STREAMER_CUSTOM][psName] == undefined) {
+                    sounds[STREAMER_CUSTOM][psName] = { "filename": filename };
                     psMsg = `${etc.getDateTime()} (custom) Added playsound ${psName} into json file\n`;
                     fs.appendFileSync(changeLogPath, psMsg);
-
-                    appendWebPage(filename);
                 }
             });
 
@@ -251,9 +255,23 @@ module.exports.updateCustom = () => {
     });
 };
 
+
+// clear all playsounds on custom webpage
+let clearWebPage = () => {
+    let lines = fs.readFileSync(webPagePath, 'utf-8').split("\n");
+
+    for (let i = lines.length - 1; i >= 0; i--) {
+        if (lines[i].includes("playsound-link"))
+            lines.splice(i, 1);
+    }
+
+    fs.writeFileSync(webPagePath, lines.join("\n"));
+}
+
+
 // adds entry to custom webpage
 let appendWebPage = (filename) => {
-    let elem = `<a id = "${filename}" href="${customURL}${filename}">${filename.split(".")[0]}</a><br>\n`;
+    let elem = `<a id="${filename}" class="playsound-link" href="${customURL}${filename}">${filename.split(".")[0]}</a><br>\n`;
 
     fs.appendFileSync(webPagePath, elem);
 }
