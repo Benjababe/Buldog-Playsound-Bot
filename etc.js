@@ -1,11 +1,11 @@
 const fs = require("fs"),
-      creds = require("./private/credentials.json"),
+    creds = require("./private/credentials.json"),
 
-      Snoowrap = require("snoowrap"),
-      client = new Snoowrap(creds);
+    Snoowrap = require("snoowrap"),
+    client = new Snoowrap(creds);
 
 client.config({ continueAfterRatelimitError: false });
-      
+
 const actionLogPath = "./private/actionlog.txt";
 
 module.exports.CommentJob = class {
@@ -42,9 +42,12 @@ module.exports.actionlog = (header, msg) => {
 }
 
 module.exports.listenComments = (parseComment) => {
-    const subreddits = ["admiralbulldog",       "dota2", 
-                        "drunkmers",            "lacari",
-                        "testingground4bots"];
+    const subreddits = [
+        "admiralbulldog",
+        "dota2",
+        "drunkmers",
+        "testingground4bots"
+    ];
 
     // inefficient since it goes through old comments
     // but doesn't result in ratelimit exceeding
@@ -54,7 +57,8 @@ module.exports.listenComments = (parseComment) => {
                 comments.forEach(parseComment);
             });
         } catch (e) {
-            console.log("Comment reading rate limit exceeded");
+            console.error(e.message);
+            console.log("Error with reading comments");
         }
     });
 };
