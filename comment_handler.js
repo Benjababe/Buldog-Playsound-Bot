@@ -1,13 +1,13 @@
-const etc = require("./etc"),
-    psHandler = require("./playsound_handler"),
-    creds = require("./private/credentials.json");
+import fs from "node:fs";
+
+import { log, actionlog } from "./etc.js";
+import { download, newFileName, combine } from "./playsound_handler.js";
+import creds from "./private/credentials.json" assert { type: 'json' };;
 
 const hostURL = "https://Buldog-Playsound-Bot.benjababe.repl.co",
     generatedURL = hostURL + "/playsounds/generated/",
     customURL = hostURL + "/playsounds/custom/",
     playsoundJSONPath = "./private/playsounds.json";
-
-const fs = require("fs");
 
 const STREAMER_BULLDOG = "bulldog",
     STREAMER_LACARI = "lacari",
@@ -41,7 +41,7 @@ class ReplyJob {
 
 let replyQueue = [];
 
-module.exports.parse = async (item, isPost = false) => {
+export const parse = async (item, isPost = false) => {
     let psJobs = [],
         comment = ((isPost) ? item.title.trim() : item.body.trim()).split(/\s+/);
 
@@ -66,7 +66,7 @@ module.exports.parse = async (item, isPost = false) => {
         soundData = fs.readFileSync(playsoundJSONPath),
         sounds = JSON.parse(soundData);
 
-    etc.log("Comment", `Processing: ${comment.join(" ")}`);
+    log("Comment", `Processing: ${comment.join(" ")}`);
 
     // skips everything until playsound command is found
     while (comment[0] != "!playsound")
@@ -86,7 +86,7 @@ module.exports.parse = async (item, isPost = false) => {
 
             // if playsound doesn't exist
             if (sounds[streamer][playsound] == undefined) {
-                etc.log("Comment", `Playsound ${playsound} doesn't exist for ${streamer}`);
+                log("Comment", `Playsound ${playsound} doesn't exist for ${streamer}`);
                 return;
             }
 
@@ -117,7 +117,7 @@ module.exports.parse = async (item, isPost = false) => {
 }
 
 
-let generateReplyJob = async (item, sounds, ps) => {
+const generateReplyJob = async (item, sounds, ps) => {
     let url = "",
         dateTime = Date.now();
 
@@ -135,11 +135,11 @@ let generateReplyJob = async (item, sounds, ps) => {
 
         // download if custom speed is given
         else {
-            await psHandler.download(url, ps[2], dateTime);
+            await download(url, ps[2], dateTime);
 
             let filename = url.split("/");
             filename = filename[filename.length - 1];
-            filename = psHandler.newFilename(filename, dateTime, false);
+            filename = newFileName(filename, dateTime, false);
 
             url = generatedURL + filename;
             pushReplyQueue(item, url, ps[1], tagsJSON[ps[1]]);
@@ -161,10 +161,10 @@ let generateReplyJob = async (item, sounds, ps) => {
             filename = filename[filename.length - 1];
 
             // waits for file to finish downloading
-            await psHandler.download(url, tempPS[2], dateTime);
+            await download(url, tempPS[2], dateTime);
 
             // gets the downloaded filename and keeps it for later
-            files.push(psHandler.newFilename(filename, dateTime, genPath = true));
+            files.push(newFileName(filename, dateTime, genPath = true));
 
             // same for the playsound name
             names.push(tempPS[1]);
@@ -174,13 +174,13 @@ let generateReplyJob = async (item, sounds, ps) => {
 }
 
 
-let combinePlaysounds = async (item, files, names) => {
+const combinePlaysounds = async (item, files, names) => {
 
     // combined filename of playsounds
     //let filename = getCombinedFilename(files);
     // using this for now, since filenames can be too long
     let filename = `xyz_ss_${Date.now()}.ogg`
-    await psHandler.combine(files, filename);
+    await combine(files, filename);
 
     // generates reply and replies to playsound command
     let url = generatedURL + filename,
@@ -192,7 +192,7 @@ let combinePlaysounds = async (item, files, names) => {
 
 
 // returns combined filename of joint playsound
-let getCombinedFilename = (files) => {
+const getCombinedFilename = (files) => {
     let combinedFile = [];
 
     files.forEach((file) => {
@@ -205,7 +205,7 @@ let getCombinedFilename = (files) => {
 }
 
 // returns tags for the reply
-let getTags = (sounds) => {
+const getTags = (sounds) => {
     let commentTags = [];
 
     Array.from(Object.keys(tagsJSON)).forEach((name) => {
@@ -218,14 +218,14 @@ let getTags = (sounds) => {
 }
 
 
-let pushReplyQueue = (item, url, comment, tags = "") => {
+const pushReplyQueue = (item, url, comment, tags = "") => {
     let replyJob = new ReplyJob(item, url, comment, tags);
     replyQueue.push(replyJob);
     replyComment();
 }
 
 
-let replyComment = async () => {
+const replyComment = async () => {
     if (replyQueue.length == 0)
         return;
 
@@ -236,8 +236,8 @@ let replyComment = async () => {
             await job.item.reply(`${job.tags}[${job.comment}](${job.url})`);
             await job.item.upvote();
 
-            etc.log("Comment", `Replied with "${job.tags}[${job.comment}](${job.url})"`);
-            etc.actionlog("Comment", `Commented playsound(s) ${job.comment}`);
+            log("Comment", `Replied with "${job.tags}[${job.comment}](${job.url})"`);
+            actionlog("Comment", `Commented playsound(s) ${job.comment}`);
         }
     }
 
@@ -255,7 +255,7 @@ let replyComment = async () => {
 }
 
 
-let parseRateLimit = (ex) => {
+const parseRateLimit = (ex) => {
     let regex = /Take a break for [0-9.]{1,5} (minute[s]{0,1}|second[s]{0,1}){1} before trying again/gm;
 
     let found = ex.match(regex);
@@ -274,7 +274,7 @@ let parseRateLimit = (ex) => {
 };
 
 
-let checkCommented = (item) => {
+const checkCommented = (item) => {
     let commented = false;
     return new Promise((res) => {
         item.expandReplies().then(c => {
@@ -294,7 +294,7 @@ let checkCommented = (item) => {
 };
 
 
-let isFloat = (inputString) => {
+const isFloat = (inputString) => {
     const parsed = parseFloat(inputString);
 
     //checks if length of input is same as output

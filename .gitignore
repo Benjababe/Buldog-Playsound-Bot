@@ -2,6 +2,7 @@ node_modules
 credentials.json
 .replit
 .env
+.vscode
 .breakpoints
 private/actionlog.txt
 public/playsounds/generated/*.ogg

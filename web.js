@@ -1,16 +1,16 @@
-const etc = require("./etc"),
-    express = require("express"),
-    https = require("https"),
-    multer = require("multer"),
-    path = require("path"),
-    psHandler = require("./playsound_handler");
+
+import { getDateTime } from "./etc.js";
+import * as psHandler from "./playsound_handler.js";
+import express from "express";
+import multer from "multer";
+import path from "path";
 
 const STREAMER_BULLDOG = "bulldog",
-      STREAMER_LACARI = "lacari",
-      STREAMER_DRUNKMERS = "drunkmers";
+    STREAMER_LACARI = "lacari",
+    STREAMER_DRUNKMERS = "drunkmers";
 
 
-module.exports.init = () => {
+export const init = () => {
     const app = express();
     const hostURL = "https://Buldog-Playsound-Bot.benjababe.repl.co";
 
@@ -34,7 +34,7 @@ module.exports.init = () => {
     }
 
     app.get("/", (req, res) => {
-        let dateTime = etc.getDateTime();
+        let dateTime = getDateTime();
         console.log(`${dateTime} Ping Received from ${req.ip}`);
         res.sendStatus(200);
         res.end();

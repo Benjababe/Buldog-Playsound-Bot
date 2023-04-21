@@ -1,14 +1,14 @@
-const fs = require("fs"),
-    creds = require("./private/credentials.json"),
+import fs from "node:fs";
+import Snoowrap from "snoowrap";
 
-    Snoowrap = require("snoowrap"),
-    client = new Snoowrap(creds);
+import creds from "./private/credentials.json" assert { type: 'json' };;
 
+const client = new Snoowrap(creds);
 client.config({ continueAfterRatelimitError: false });
 
 const actionLogPath = "./private/actionlog.txt";
 
-module.exports.CommentJob = class {
+export const CommentJob = class {
     constructor(item, reply, soundURL, soundName, speed, streamer, sub) {
         this.item = item;
         this.reply = reply;
@@ -21,7 +21,7 @@ module.exports.CommentJob = class {
     }
 }
 
-module.exports.DeleteJob = class {
+export const DeleteJob = class {
     constructor(filepath, expiryTime) {
         this.filepath = filepath;
         this.expiryTime = expiryTime;
@@ -29,19 +29,19 @@ module.exports.DeleteJob = class {
 }
 
 // prints onto console
-module.exports.log = (header, text, bracket = true) => {
+export const log = (header, text, bracket = true) => {
     header = (header.length == 0) ? "" : (bracket) ? `[${header}] ` : `${header} `;
     console.log(`${header}${text}`);
 }
 
 
 // appends into action log
-module.exports.actionlog = (header, msg) => {
+export const actionlog = (header, msg) => {
     let toWrite = `${getDateTime()} (${header}) ${msg}\n`;
     fs.appendFileSync(actionLogPath, toWrite);
 }
 
-module.exports.listenComments = (parseComment) => {
+export const listenComments = (parseComment) => {
     const subreddits = [
         "admiralbulldog",
         "dota2",
@@ -63,11 +63,11 @@ module.exports.listenComments = (parseComment) => {
     });
 };
 
-let sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
-let dtFormat = (dt) => ("0" + dt).slice(-2);
+const dtFormat = (dt) => ("0" + dt).slice(-2);
 
-let getDateTime = () => {
+export const getDateTime = () => {
     let d = new Date();
 
     //setting to GMT+8
@@ -85,5 +85,3 @@ let getDateTime = () => {
     // eg. [25/10/2020 - 11:18:54 PM]
     return `[${date}/${month}/${year} - ${hour}:${min}:${sec} ${ampm}]`;
 };
-
-module.exports.getDateTime = getDateTime;
