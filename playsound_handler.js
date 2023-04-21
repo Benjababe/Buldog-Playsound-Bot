@@ -198,25 +198,6 @@ export const updateStreamElementsPlaysound = async (streamer) => {
     } catch (ex) {
         console.error(`Error while updating ${streamer}\n${ex}`);
     }
-
-    // request(streamerURL, (err, res, body) => {
-    //     if (err && res.statusCode != 200)
-    //         return;
-
-    //     let json = JSON.parse(body),
-    //         streamerID = json["_id"],
-    //         storeURL = `https://api.streamelements.com/kappa/v2/store/${streamerID}/items`;
-
-    //     request(storeURL, (err, res, body) => {
-    //         if (err && res.statusCode != 200)
-    //             return;
-
-    //         let data = JSON.parse(body);
-    //         handleStreamElementsArray(streamer, data);
-    //         console.log(`${streamer} playsounds updated`);
-    //     });
-
-    // });
 }
 
 
