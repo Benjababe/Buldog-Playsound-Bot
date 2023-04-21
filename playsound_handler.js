@@ -6,8 +6,8 @@ const etc = require("./etc"),
     request = require("request");
 
 const STREAMER_BULLDOG = "bulldog",
-      STREAMER_LACARI = "lacari",
-      STREAMER_CUSTOM = "custom";
+    STREAMER_LACARI = "lacari",
+    STREAMER_CUSTOM = "custom";
 
 const ffmpegPath = "./private/tools/ffmpeg",
     generatedPath = "./public/playsounds/generated/";
@@ -19,7 +19,7 @@ module.exports.download = async (url, speed, dateTime) => {
         let filename = url.split("/").slice(-1)[0].trim();
 
         const file = fs.createWriteStream(generatedPath + filename);
-        https.get(url, function (response) {
+        https.get(url, function(response) {
             response.pipe(file);
             file.on("finish", async () => {
                 file.close();
@@ -138,13 +138,17 @@ module.exports.updatePajbotPlaysounds = (streamer) => {
             (streamer == STREAMER_LACARI) ? "https://lacari.live/playsounds" : "";
 
     request(siteURL, (err, res, body) => {
-        if (!err && res.statusCode == 200) {
-            let $ = cheerio.load(body);
-            let tables = $("table");
-            Array.from(tables).forEach((table) => {
-                handlePajbotTable(table, streamer);
-            });
-            console.log(`${streamer} playsounds updated`);
+        if (!err && res.statusCode == 200 && body) {
+            try {
+                let $ = cheerio.load(body.toString());
+                let tables = $("table");
+                Array.from(tables).forEach((table) => {
+                    handlePajbotTable(table, streamer);
+                });
+                console.log(`${streamer} playsounds updated`);
+            } catch (ex) {
+                console.log(`Error while updating ${streamer} using ${siteURL}\n${ex}`);
+            }
         }
 
         else
