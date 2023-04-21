@@ -9,6 +9,8 @@ const STREAMER_BULLDOG = "bulldog",
     STREAMER_LACARI = "lacari",
     STREAMER_DRUNKMERS = "drunkmers";
 
+const __dirname = path.resolve();
+
 
 export const init = () => {
     const app = express();

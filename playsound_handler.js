@@ -12,6 +12,8 @@ const STREAMER_BULLDOG = "bulldog",
 const ffmpegPath = "./private/tools/ffmpeg",
     generatedPath = "./public/playsounds/generated/";
 
+const __dirname = path.resolve();
+
 // downloads playsound for speed editing. regular playsounds can just be linked to its url
 export const download = async (url, speed, dateTime) => {
 
