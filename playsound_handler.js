@@ -5,13 +5,10 @@ import fs from "node:fs";
 import cheerio from "cheerio";
 import https from "https"
 import fetch from "node-fetch";
-import path from "path";
 
 const STREAMER_BULLDOG = "bulldog",
     STREAMER_LACARI = "lacari",
     STREAMER_CUSTOM = "custom";
-
-console.dir(process.env);
 
 const ffmpegPath = process.env.FFMPEG_PATH || "./private/tools/ffmpeg",
     generatedPath = "./public/playsounds/generated/";
@@ -25,7 +22,7 @@ export const download = async (url, speed, dateTime) => {
         let filename = url.split("/").slice(-1)[0].trim();
 
         const file = fs.createWriteStream(generatedPath + filename);
-        https.get(url, function(response) {
+        https.get(url, function (response) {
             response.pipe(file);
             file.on("finish", async () => {
                 file.close();
