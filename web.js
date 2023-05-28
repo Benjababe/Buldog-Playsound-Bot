@@ -67,7 +67,11 @@ export const init = () => {
 
             for (const psName of psNames) {
                 const data = playsounds[psName];
-                page += `<a href=${data.url}>${psName}</a><br>`
+                const url = (streamer === "custom")
+                    ? `/playsounds/custom/${data.filename}`
+                    : data.url
+
+                page += `<a href=${url}>${psName}</a><br>`
             }
 
             res.status(200).send(page).end();
@@ -76,15 +80,6 @@ export const init = () => {
         }
 
         res.status(400).end();
-    });
-
-    app.get("/custom", (req, res) => {
-        res.sendFile(path.join(__dirname, "/public/web/custom_playsounds.html"), (err) => {
-            if (err)
-                res.status(err.status).end();
-            else
-                res.end();
-        });
     });
 
     app.get("/upload", (req, res) => {
