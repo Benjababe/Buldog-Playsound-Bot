@@ -1,5 +1,6 @@
 import { getDateTime } from "./etc.js";
 import { exec } from "node:child_process";
+import path from "node:path";
 import fs from "node:fs";
 import cheerio from "cheerio";
 import https from "https"

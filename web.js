@@ -4,10 +4,12 @@ import * as psHandler from "./playsound_handler.js";
 import express from "express";
 import multer from "multer";
 import path from "path";
+import { readFileSync } from "node:fs";
 
 const STREAMER_BULLDOG = "bulldog",
     STREAMER_LACARI = "lacari",
-    STREAMER_DRUNKMERS = "drunkmers";
+    STREAMER_DRUNKMERS = "drunkmers",
+    playsoundJSONPath = "./private/playsounds.json";
 
 const __dirname = path.resolve();
 
@@ -50,6 +52,30 @@ export const init = () => {
 
         res.send("Updating playsounds...");
         res.end();
+    });
+
+    app.get("/playsounds/:streamer", (req, res) => {
+        const playsoundJSONFile = readFileSync(playsoundJSONPath);
+        const playsoundData = JSON.parse(playsoundJSONFile);
+
+        const streamer = req.params.streamer;
+        let page = "";
+
+        if (playsoundData.hasOwnProperty(streamer)) {
+            const playsounds = playsoundData[streamer];
+            const psNames = Object.keys(playsounds).sort();
+
+            for (const psName of psNames) {
+                const data = playsounds[psName];
+                page += `<a href=${data.url}>${psName}</a><br>`
+            }
+
+            res.status(200).send(page).end();
+        } else {
+            res.status(404).end();
+        }
+
+        res.status(400).end();
     });
 
     app.get("/custom", (req, res) => {
